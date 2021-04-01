@@ -8,6 +8,8 @@ local MAX_TEMPERATURE_CHANGE = 5
 local TEMPERATURE_INCREASE_PROBABILITY = 0.8
 local MAX_TEMPERATURE_IN_ROOM = 60;
 
+local commons = require 'commons'
+
 Sensors = {
     Battery = {
 
@@ -78,14 +80,35 @@ Sensors = {
 
     DirtDetector = {
 
-        new = function(self, positions)
+        --[[
+            parameters
+                areaList: DirtArea[]
+        ]]
+        new = function(self, areaList)
             local o = {
-                positions = positions
+                areaList = areaList,
             }
             setmetatable(o, self)
             self.__index = self
             return o
         end;
+
+        --[[
+            parameters
+                position: Position
+            return
+                if the sensor detected some dirt surface
+        ]]
+        detect = function(self, position)
+            local length = #self.areaList
+            for i=1,length do
+                if commons.positionInDirtArea(position, self.areaList[i]) then
+                    commons.log("-- Dirt detected dirt -- <" .. position.lat .. "|" .. position.lng .. ">")
+                    return true
+                end
+            end
+            return false
+        end
 
     }
 }
