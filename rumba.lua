@@ -23,19 +23,38 @@ local count = 0
 -- Executed each time the simulation starts from 0
 function init()
 	a:useMode()
-	-- require 'pl.pretty'.dump(robot)
+	--robot.wheels.set_velocity(0, 10)
+	commons.stringify(robot)
 end
 
 function step()
 	--[[log("Battery percentage = " .. a.percentage)
 	log("Temperature = " .. b.temperature)
 	a:tick()
-	b:tick()
+	b:tick() ]]
 
-	count = count + 1;]]
+	count = count + 1;
+	--[[ if count % 20 == 0 then
+		left_v = - robot.wheels.velocity_left;
+		right_v = - robot.wheels.velocity_right;
+		robot.wheels.set_velocity(left_v,right_v)
+	end ]]
 
-	c:detect(commons.Position:new(0,0))
-	d:clean(commons.Position:new(0,0))
+	-- c:detect(commons.Position:new(0,0))
+	-- d:clean(commons.Position:new(0,0))
+
+	-- commons.stringify(robot.wheels)
+	print("Positioning " .. math.deg( robot.positioning.orientation:toangleaxis()))
+	print("Positioning " .. math.deg(robot.positioning.orientation:toeulerangles()))
+	print(robot.wheels.distance_left)
+	print(robot.wheels.distance_right)
+	print(robot.wheels.velocity_left)
+	print(robot.wheels.velocity_right)
+	print("-------------")
+
+	if math.ceil(math.deg(robot.positioning.orientation:toeulerangles())) == -90 then
+		robot.wheels.set_velocity(0,0)
+	end
 
 	-- if(count == 100) then a:chargeMode() end
 end
@@ -43,6 +62,7 @@ end
 
 --Executed when the reset button is pressed
 function reset()
+	robot.wheels.set_velocity(0, 10)
 end
 
 -- Executed on robot destruction
