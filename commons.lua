@@ -37,6 +37,11 @@ Commons = {
         end
     },
 
+    Direction = {
+        NORTH = "NORTH", EAST = "EAST", SOUTH = "SOUTH", WEST = "WEST",
+        NORTH_EAST = "NORTH_EAST", NORTH_WEST = "NORTH_WEST", SOUTH_EAST = "SOUTH_EAST", SOUTH_WEST = "SOUTH_WEST"
+    },
+
     --[[
         parameters
             position: Position
@@ -55,8 +60,12 @@ Commons = {
         require 'pl.pretty'.dump(object)
     end,
 
-    log = function (message)
+    print = function (message)
         log(message)
+    end,
+
+    printToConsole = function (message)
+        print(message)
     end
 
 }

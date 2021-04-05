@@ -1,3 +1,5 @@
+require 'math'
+
 -- battery constants
 local BATTERY_STEP_DECREASE_FREQUENCY = 40
 local BATTERY_STEP_INCREASE_FREQUENCY = 20
@@ -8,7 +10,20 @@ local MAX_TEMPERATURE_CHANGE = 5
 local TEMPERATURE_INCREASE_PROBABILITY = 0.8
 local MAX_TEMPERATURE_IN_ROOM = 60;
 
+-- compass sensors constants
+local UPPER_NORTH_BOUND = 180.2;
+local LOWER_NORTH_BOUND = 179.8;
+local UPPER_WEST_BOUND = 270.2;
+local LOWER_WEST_BOUND = 269.8;
+local UPPER_SOUTH_BOUND_1 = 360.2;
+local LOWER_SOUTH_BOUND_1 = 359.8;
+local UPPER_SOUTH_BOUND_2 = 0.2;
+local LOWER_SOUTH_BOUND_2 = 0;
+local UPPER_EAST_BOUND = 90.2;
+local LOWER_EAST_BOUND = 89.8;
+
 local commons = require 'commons'
+local Direction = commons.Direction
 
 Sensors = {
     Battery = {
@@ -110,6 +125,38 @@ Sensors = {
             return false
         end
 
+    },
+
+    Compass = {
+        new = function(self, robot)
+            local o = {
+                robot = robot
+            }
+            setmetatable(o, self)
+            self.__index = self
+            return o
+        end;
+
+        getCurrentDirection = function (self)
+            local angle = math.deg(self.robot.positioning.orientation:toangleaxis())
+            if angle >= LOWER_NORTH_BOUND and angle <= UPPER_NORTH_BOUND then
+                return Direction.NORTH
+            elseif angle > UPPER_NORTH_BOUND and angle < LOWER_WEST_BOUND then
+                return Direction.NORTH_WEST
+            elseif angle >= LOWER_WEST_BOUND and angle <= UPPER_WEST_BOUND then
+                return Direction.WEST
+            elseif angle > UPPER_WEST_BOUND and angle < LOWER_SOUTH_BOUND_2 then
+                return Direction.SOUTH_WEST
+            elseif (angle >= LOWER_SOUTH_BOUND_1 and angle <= UPPER_SOUTH_BOUND_1) or (angle >= LOWER_SOUTH_BOUND_2 and angle <= UPPER_SOUTH_BOUND_2) then
+                return Direction.SOUTH
+            elseif angle > UPPER_SOUTH_BOUND_2 and angle < LOWER_EAST_BOUND then
+                return Direction.SOUTH_EAST
+            elseif angle >= LOWER_EAST_BOUND and angle <= UPPER_EAST_BOUND then
+                return Direction.EAST
+            else
+                return Direction.NORTH_EAST
+            end
+        end
     }
 }
 
