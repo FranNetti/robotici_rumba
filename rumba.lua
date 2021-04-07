@@ -8,6 +8,7 @@ local State = (require 'robot/commons').State
 local Subsumption = require 'robot/controller/subsumption'
 
 local RobotAdvance = require 'robot/controller/behaviour/robot_advance'
+local ObstacleAvoidance = require 'robot/controller/behaviour/obstacle_avoidance'
 
 local INITIAL_ROOM_TEMPERATURE = 12;
 
@@ -29,7 +30,7 @@ local robotController;
 
 local function setupWorkspace()
 	robot.wheels.set_velocity(0,0)
-	robot.leds.set_all_colors("black")
+	robot.leds.set_all_colors(commons.Color.BLACK)
 	-------
 	temperatureSensor = sensors.TemperatureSensor:new(INITIAL_ROOM_TEMPERATURE)
 	dirtDetector = sensors.DirtDetector:new(dirt)
@@ -37,7 +38,8 @@ local function setupWorkspace()
 	compass = sensors.Compass:new(robot)
 	brush = actuators.Brush:new(dirt)
 	robotController = Subsumption:new {
-		RobotAdvance
+		RobotAdvance,
+		ObstacleAvoidance:new()
 	}
 	-------
 	commons.stringify(robot)
@@ -66,24 +68,34 @@ function step()
 	}
 
 	local action = robotController:behave(state)
-	if action.speed ~= nil then
-		robot.wheels.set_velocity(action.speed.left, action.speed.right)
-	end
 
-	if action.hasToClean ~= nil and action.hasToClean then
-		brush:clean(position)
-	end
-
-	if action.hasToRecharge ~= nil and action.hasToRecharge then
-		battery:chargeMode()
+	if battery.percentage == 0 then
+		robot.wheels.set_velocity(0, 0)
+		robot.leds.set_all_colors(commons.Color.RED)
 	else
-		battery:useMode()
-	end
 
-	if action.leds ~= nil and action.leds.switchedOn then
-		robot.leds.set_all_colors(action.leds.color)
-	else
-		robot.leds.set_all_colors("black")
+		if action.speed ~= nil then
+			robot.wheels.set_velocity(action.speed.left, action.speed.right)
+		end
+
+		if action.hasToClean ~= nil and action.hasToClean then
+			brush:clean(position)
+		end
+
+		if action.hasToRecharge ~= nil and action.hasToRecharge then
+			battery:chargeMode()
+		else
+			battery:useMode()
+		end
+
+		if action.leds ~= nil and action.leds.switchedOn then
+			robot.leds.set_all_colors(action.leds.color)
+		elseif battery.percentage < 5 then
+			robot.leds.set_all_colors(commons.Color.MAGENTA)
+		else
+			robot.leds.set_all_colors(commons.Color.BLACK)
+		end
+
 	end
 
 	battery:tick()

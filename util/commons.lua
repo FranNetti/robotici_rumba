@@ -42,6 +42,11 @@ Commons.Direction = {
     NORTH_EAST = "NORTH_EAST", NORTH_WEST = "NORTH_WEST", SOUTH_EAST = "SOUTH_EAST", SOUTH_WEST = "SOUTH_WEST"
 }
 
+Commons.Color = {
+    BLACK = "black", WHITE = "white", RED = "red", GREEN = "green", BLUE = "blue", MAGENTA = "magenta", CYAN = "cyan",
+    YELLOW = "yellow", ORANGE = "orange", BROWN = "brown", PURPLE = "purple", GRAY = "gray40"
+}
+
 ---If the given position is in dirtArea
 ---@param position table Position the position
 ---@param dirtArea table DirtArea the dirt area
