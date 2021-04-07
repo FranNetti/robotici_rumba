@@ -1,10 +1,13 @@
 require 'math'
 math.randomseed(1234)
+
 local sensors = require 'robot/sensors'
 local actuators = require 'robot/actuators'
 local commons = require 'util/commons'
 local State = (require 'robot/commons').State
-local Subsumption = require 'controller/subsumption'
+local Subsumption = require 'robot/controller/subsumption'
+
+local RobotAdvance = require 'robot/controller/behaviour/robot_advance'
 
 local INITIAL_ROOM_TEMPERATURE = 12;
 
@@ -33,7 +36,9 @@ local function setupWorkspace()
 	battery = sensors.Battery:new()
 	compass = sensors.Compass:new(robot)
 	brush = actuators.Brush:new(dirt)
-	robotController = Subsumption:new{}
+	robotController = Subsumption:new {
+		RobotAdvance
+	}
 	-------
 	commons.stringify(robot)
 end
