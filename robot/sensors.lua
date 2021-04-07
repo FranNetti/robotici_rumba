@@ -22,7 +22,7 @@ local LOWER_SOUTH_BOUND_2 = 0;
 local UPPER_EAST_BOUND = 90.2;
 local LOWER_EAST_BOUND = 89.8;
 
-local commons = require 'util/commons'
+local commons = require 'util.commons'
 local Direction = commons.Direction
 
 Sensors = {}

@@ -1,4 +1,4 @@
-local commons = require 'util/commons'
+local commons = require 'util.commons'
 
 Actuators = {}
 

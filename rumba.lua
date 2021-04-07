@@ -1,14 +1,14 @@
 require 'math'
 math.randomseed(1234)
 
-local sensors = require 'robot/sensors'
-local actuators = require 'robot/actuators'
-local commons = require 'util/commons'
-local State = (require 'robot/commons').State
-local Subsumption = require 'robot/controller/subsumption'
+local sensors = require 'robot.sensors'
+local actuators = require 'robot.actuators'
+local commons = require 'util.commons'
+local State = (require 'robot.commons').State
+local Subsumption = require 'robot.controller.subsumption'
 
-local RobotAdvance = require 'robot/controller/behaviour/robot_advance'
-local ObstacleAvoidance = require 'robot/controller/behaviour/obstacle_avoidance'
+local RobotAdvance = require 'robot.controller.behaviour.robot_advance'
+local ObstacleAvoidance = require 'robot.controller.behaviour.obstacle_avoidance'
 
 local INITIAL_ROOM_TEMPERATURE = 12;
 
