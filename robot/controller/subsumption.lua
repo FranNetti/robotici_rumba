@@ -3,10 +3,9 @@ local Action = (require 'robot/commons').Action
 
 Subsumption = {
 
-    --[[
-        parameters
-            behaviours: Behaviour[] bottom-up
-    ]]
+    ---Create a new controller with subsumption architecture
+    ---@param behaviours table Behavior[] the list of behaviours starting from the lower level up to the higher ones
+    ---@return table a new controller with subsumption architecture
     new = function (self, behaviours)
         local o = {
             behaviours = behaviours,
@@ -17,19 +16,16 @@ Subsumption = {
         return o
     end,
 
-    --[[
-        parameters
-            state: Robot.State
-        returns
-            Robot.Action
-    ]]
+    ---Activates all the behaviors
+    ---@param state table Robot.State the current state
+    ---@return table Robot.Action the action to perform
     behave = function (self, state)
         local behavioursActions = {}
         local behavioursToSubsume = Set:new{}
         -- flow from top to bottom in order to let heigher levels subsume lower levels
         for i = self.behavioursNumber, 1, -1 do
             if not behavioursToSubsume:contain(i) then
-                local action = self.behaviours[i].tick(state)
+                local action = self.behaviours[i]:tick(state)
                 --[[ if action.levelsToSubsume:containGreaterOrEqual(i) then
                     error("You're trying to subsume a level higher than you!")
                 end ]]

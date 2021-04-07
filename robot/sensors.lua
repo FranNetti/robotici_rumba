@@ -69,6 +69,9 @@ Sensors.Battery = {
 
 Sensors.TemperatureSensor = {
 
+    ---Create new Temperature sensor
+    ---@param initialTemperature number the initial temperature of the room
+    ---@return table a new temperature sensor
     new = function(self, initialTemperature)
         local o = {
             temperature = initialTemperature;
@@ -100,10 +103,9 @@ Sensors.TemperatureSensor = {
 
 Sensors.DirtDetector = {
 
-    --[[
-        parameters
-            areaList: DirtArea[]
-    ]]
+    ---Create a new Dirt Detector
+    ---@param areaList table DirtArea[] the list of area where dirt is located
+    ---@return table a new Dirt Detector
     new = function(self, areaList)
         local o = {
             areaList = areaList,
@@ -113,12 +115,9 @@ Sensors.DirtDetector = {
         return o
     end;
 
-    --[[
-        parameters
-            position: Position
-        return
-            if the sensor detected some dirt surface
-    ]]
+    ---Detect if there is dirt in your position
+    ---@param position table Position the position where you are
+    ---@return boolean if the sensor detected some dirt surface
     detect = function(self, position)
         local length = #self.areaList
         for i=1,length do
@@ -133,6 +132,10 @@ Sensors.DirtDetector = {
 }
 
 Sensors.Compass = {
+    
+    ---Create a new compass sensor
+    ---@param robot any the robot of argos
+    ---@return table a new compass sensor
     new = function(self, robot)
         local o = {
             robot = robot
@@ -142,6 +145,8 @@ Sensors.Compass = {
         return o
     end;
 
+    ---Get the current robot direction
+    ---@return table Direction
     getCurrentDirection = function (self)
         local angle = math.deg(self.robot.positioning.orientation:toangleaxis())
         if angle >= LOWER_NORTH_BOUND and angle <= UPPER_NORTH_BOUND then

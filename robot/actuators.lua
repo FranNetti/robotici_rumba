@@ -4,10 +4,9 @@ Actuators = {}
 
 Actuators.Brush = {
 
-    --[[
-        parameters
-            areaList: DirtArea[]
-    ]]
+    ---Create a new brush
+    ---@param areaList table DirtArea[] the list of area where dirt is located
+    ---@return table a new brush
     new = function(self, areaList)
         local o = {
             areaList = areaList,
@@ -17,6 +16,8 @@ Actuators.Brush = {
         return o
     end;
 
+    ---Clean in the current position
+    ---@param position table Postion the position where the robot is located
     clean = function(self, position)
         local length = #self.areaList
         for i=1,length do

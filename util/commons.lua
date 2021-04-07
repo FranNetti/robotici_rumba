@@ -13,12 +13,12 @@ Commons.Position = {
 }
 
 Commons.DirtArea = {
-    --[[
-        parameters
-            topLeft: Position,
-            bottomRight: Position,
-            dirtQuantity: integer
-    ]]
+
+    ---Create a new DirtArea
+    ---@param topLeft table Position
+    ---@param bottomRight table Position
+    ---@param dirtQuantity integer how much dirt there is
+    ---@return table a new dirt area
     new = function(self, topLeft, bottomRight, dirtQuantity)
         local o = {
             topLeft = topLeft,
@@ -42,13 +42,10 @@ Commons.Direction = {
     NORTH_EAST = "NORTH_EAST", NORTH_WEST = "NORTH_WEST", SOUTH_EAST = "SOUTH_EAST", SOUTH_WEST = "SOUTH_WEST"
 }
 
---[[
-    parameters
-        position: Position
-        dirtArea: DirtArea
-    return
-        if the given position is in dirtArea
-]]
+---If the given position is in dirtArea
+---@param position table Position the position
+---@param dirtArea table DirtArea the dirt area
+---@return boolean if the given position is in dirtArea
 Commons.positionInDirtArea = function (position, dirtArea)
     return position.lat <= dirtArea.bottomRight.lat
         and position.lat >= dirtArea.topLeft.lat

@@ -2,16 +2,16 @@ Robot = {}
 
 Robot.State = {
 
-    --[[
-        data = {
-            battery_level: int,
-            room_temperature: double,
-            robot_direction: Direction,
-            isDirtDetected: bool,
-            wheels: robot.wheels,
-            proximity: robot.proximity,
-        }
-    ]]
+    ---create new state
+    ---@param data table {
+    ---     battery_level: int,
+    ---     room_temperature: double,
+    ---     robot_direction: Direction,
+    ---     isDirtDetected: bool,
+    ---     wheels: robot.wheels,
+    ---     proximity: robot.proximity,
+    --- }
+    ---@return table a new robot state
     new = function(self, data)
         local o = data
         setmetatable(o, self)
@@ -22,25 +22,22 @@ Robot.State = {
 
 Robot.Action = {
 
-    --[[
-        data = {
-            speed: {left: double, right: double},
-            hasToClean: bool,
-            hasToRecharge: bool,
-            leds: {switchedOn: bool, color: string}
-        }
-    ]]
-    new = function(self, data)
-        return Robot.Action:newWithLevelsToSubsume(data, {})
-    end;
-
-    newWithLevelsToSubsume = function(self, data, levelsToSubsume)
+    ---create new action
+    ---@param data table {
+    ---     speed: {left: double, right: double},
+    ---     hasToClean: bool,
+    ---     hasToRecharge: bool,
+    ---     leds: {switchedOn: bool, color: string}
+    --- }
+    ---@param levelsToSubsume table list of levels to subsume. Optional
+    ---@return table a new action
+    new = function(self, data, levelsToSubsume)
         local o = {
             speed = data.speed,
             hasToClean = data.hasToClean,
             hasToRecharge = data.hasToRecharge,
             leds = data.leds,
-            levelsToSubsume = levelsToSubsume
+            levelsToSubsume = levelsToSubsume or {}
         }
         setmetatable(o, self)
         self.__index = self
