@@ -1,5 +1,5 @@
-local Set = require 'set'
-local Action = (require 'robot').Action
+local Set = require 'util/set'
+local Action = (require 'robot/commons').Action
 
 Subsumption = {
 
