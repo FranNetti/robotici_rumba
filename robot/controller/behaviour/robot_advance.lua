@@ -4,6 +4,13 @@ local ROBOT_FORWARD_SPEED = 10;
 
 RobotAdvance = {
 
+    new = function (self)
+        local o = {}
+        setmetatable(o, self)
+        self.__index = self
+        return o
+    end,
+
     tick = function (_, _)
         return Action:new {
             speed = {

@@ -8,7 +8,8 @@ local State = (require 'robot.commons').State
 local Subsumption = require 'robot.controller.subsumption'
 
 local RobotAdvance = require 'robot.controller.behaviour.robot_advance'
-local ObstacleAvoidance = require 'robot.controller.behaviour.obstacle_avoidance'
+ --local ObstacleAvoidance = require 'robot.controller.behaviour.obstacle_avoidance'
+ local CollisionAvoidance = require 'robot.controller.behaviour.collision_avoidance'
 
 local INITIAL_ROOM_TEMPERATURE = 12;
 
@@ -38,8 +39,8 @@ local function setupWorkspace()
 	compass = sensors.Compass:new(robot)
 	brush = actuators.Brush:new(dirt)
 	robotController = Subsumption:new {
-		RobotAdvance,
-		ObstacleAvoidance:new()
+		RobotAdvance:new(),
+		CollisionAvoidance:new()
 	}
 	-------
 	commons.stringify(robot)
