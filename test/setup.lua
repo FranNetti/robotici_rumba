@@ -57,16 +57,30 @@ function init()
 end
 
 function step()
-	robot.wheels.set_velocity(10, 10)
-    distanceTravelled = distanceTravelled + robot.wheels.distance_left
-	local c = robot.proximity[1].value ~= 0 or robot.proximity[2].value ~= 0 or robot.proximity[24].value ~= 0 or robot.proximity[23].value ~= 0
-	for i=1,#robot.proximity do
-		commons.print("prox " .. i .. " | " .. robot.proximity[i].value)
+	local vertices = require('luagraphs.data.list').create()
+	vertices:add(tonumber(0 .. 0))
+	vertices:add(tonumber(1 .. 0))
+	vertices:add(tonumber(1 .. 1))
+	local g = require('luagraphs.data.graph').createFromVertexList(vertices)
+	g:addEdge(tonumber(0 .. 0), tonumber(1 .. 0))
+	g:addEdge(tonumber(1 .. 0), tonumber(1 .. 1))
+
+	commons.print(g:vertexCount())
+
+	local dfs = require('luagraphs.search.DepthFirstSearch').create()
+	local s = tonumber(0 .. 0)
+	dfs:run(g, s)
+	local path = dfs:getPathTo(tonumber(1 .. 1))
+	local pathText = ""
+	while not path:isEmpty() do
+		local x = path:pop()
+		if pathText == "" then
+			pathText = pathText .. x
+		else
+			pathText = pathText .. " -> " .. x
+		end
 	end
-	commons.print("-------")
-    if c then
-        robot.wheels.set_velocity(0, 0)
-    end
+	print(pathText)
     
 end
 

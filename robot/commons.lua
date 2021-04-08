@@ -6,7 +6,7 @@ Robot.State = {
     ---@param data table {
     ---     battery_level: int,
     ---     room_temperature: double,
-    ---     robot_direction: Direction,
+    ---     robot_direction: { direction: Direction, angle: double },
     ---     isDirtDetected: bool,
     ---     wheels: robot.wheels,
     ---     proximity: robot.proximity,
