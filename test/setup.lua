@@ -32,6 +32,8 @@ local robotController;
 
 local distanceTravelled;
 
+local map = require('robot.map.map'):new()
+
 local function setupWorkspace()
 	robot.wheels.set_velocity(0,0)
 	robot.leds.set_all_colors(commons.Color.BLACK)
@@ -54,34 +56,18 @@ end
 -- Executed each time the simulation starts from 0
 function init()
 	setupWorkspace()
+
+	commons.print(map:toString())
+	map:addNewDiagonalPoint(1)
+	print("----------------")
+	commons.print(map:toString())
+	map:addNewDiagonalPoint(5)
+	print("----------------")
+	commons.print(map:toString())
+
 end
 
 function step()
-	local vertices = require('luagraphs.data.list').create()
-	vertices:add(tonumber(0 .. 0))
-	vertices:add(tonumber(1 .. 0))
-	vertices:add(tonumber(1 .. 1))
-	local g = require('luagraphs.data.graph').createFromVertexList(vertices)
-	g:addEdge(tonumber(0 .. 0), tonumber(1 .. 0))
-	g:addEdge(tonumber(1 .. 0), tonumber(1 .. 1))
-
-	commons.print(g:vertexCount())
-
-	local dfs = require('luagraphs.search.DepthFirstSearch').create()
-	local s = tonumber(0 .. 0)
-	dfs:run(g, s)
-	local path = dfs:getPathTo(tonumber(1 .. 1))
-	local pathText = ""
-	while not path:isEmpty() do
-		local x = path:pop()
-		if pathText == "" then
-			pathText = pathText .. x
-		else
-			pathText = pathText .. " -> " .. x
-		end
-	end
-	print(pathText)
-    
 end
 
 
