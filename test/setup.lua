@@ -55,15 +55,56 @@ end
 
 -- Executed each time the simulation starts from 0
 function init()
+
+	cell_status = require('robot.map.cell_status')
 	setupWorkspace()
 
-	commons.print(map:toString())
+	-- commons.printToConsole(map:toString())
 	map:addNewDiagonalPoint(1)
-	print("----------------")
-	commons.print(map:toString())
+	map.map[0][1] = cell_status.CLEAN
+	map.map[1][0] = cell_status.CLEAN
+	map.map[1][1] = cell_status.CLEAN
+	--commons.stringify(map.graph)
+	-- commons.printToConsole("----------------")
 	map:addNewDiagonalPoint(5)
-	print("----------------")
-	commons.print(map:toString())
+	-- commons.stringify(map.graph)
+
+
+	--[[ commons.stringify(require('extensions.luagraphs.shortest_paths.a_star').path(
+		"0|0",
+		"2|2",
+		map.graph,
+		true,
+		nil,
+		function (x1, y1, x2, y2)
+			local cost = math.abs(x1 - x2) + math.abs(y1 - y2)
+			if map.map[x2][y2] == cell_status.TO_EXPLORE then
+				return cost
+			else
+				return cost * 2
+			end
+		end
+	)) ]]
+
+	local g = require('extensions.luagraphs.shortest_paths.pippo').create(map.graph)
+	--commons.stringify(map.graph)
+	commons.printToConsole("----------------")
+	commons.stringify(g:getPath(
+		"2|2",
+		"0|0",
+		function (pointA, pointB)
+
+			local x1, y1 = map.decodeCoordinates(pointA)
+			local x2, y2 = map.decodeCoordinates(pointB)
+
+			local cost = math.abs(x1 - x2) + math.abs(y1 - y2)
+			if map.map[x2][y2] == cell_status.TO_EXPLORE then
+				return cost
+			else
+				return cost * 2
+			end
+		end
+	))
 
 end
 

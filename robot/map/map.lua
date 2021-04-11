@@ -6,12 +6,14 @@ local luaGraph = require('extensions.luagraphs.data.graph')
 
 local CellStatus = require('robot.map.cell_status')
 
+local CELL_TO_EXPLORE_COST = 0
+local CELL_EXPLORED_COST = 1
 
-RobotMap = {
+Map = {
 
     new = function(self)
         local vertices = luaList.create()
-        vertices:add("0-0")
+        vertices:add(Map.encodeCoordinates(0, 0))
 
         local o = {
             position = Position:new(0, 0),
@@ -30,13 +32,40 @@ RobotMap = {
             for i = 0, currentDepth do
                 for j = currentDepth + 1, depth do
                     self.map[i][j] = CellStatus.TO_EXPLORE
+                    self.graph:addEdge(
+                        Map.encodeCoordinates(i, j - 1),
+                        Map.encodeCoordinates(i, j),
+                        CELL_TO_EXPLORE_COST
+                    )
+                    self.graph:addEdge(
+                        Map.encodeCoordinates(i, j),
+                        Map.encodeCoordinates(i + 1, j),
+                        CELL_TO_EXPLORE_COST
+                    )
                 end
             end
 
             for i= currentDepth + 1, depth do
                 self.map[i] = {[0] = CellStatus.TO_EXPLORE}
+                self.graph:addEdge(
+                    Map.encodeCoordinates(i - 1, 0),
+                    Map.encodeCoordinates(i, 0),
+                    CELL_TO_EXPLORE_COST
+                )
                 for j = 1, depth do
                     self.map[i][j] = CellStatus.TO_EXPLORE
+                    self.graph:addEdge(
+                        Map.encodeCoordinates(i, j - 1),
+                        Map.encodeCoordinates(i, j),
+                        CELL_TO_EXPLORE_COST
+                    )
+                    if i ~= depth then
+                        self.graph:addEdge(
+                            Map.encodeCoordinates(i, j),
+                            Map.encodeCoordinates(i + 1, j),
+                            CELL_TO_EXPLORE_COST
+                        )
+                    end
                 end
             end
         end
@@ -44,6 +73,12 @@ RobotMap = {
 
     setCellAs = function (self, cellPosition, cellStatus)
         self.map[cellPosition.lat][cellPosition.lng] = cellStatus
+        local coordinates = Map.encodeCoordinates(cellPosition.lat, cellPosition.lng)
+        if cellStatus == CellStatus.OBSTACLE then
+            self.graph:removeVertex(coordinates)
+        else
+            self.graph:changeAllEdgesWeightOfVertex(coordinates, CELL_EXPLORED_COST)
+        end
     end,
 
     setDirtyCell = function (self, cellPosition)
@@ -62,28 +97,40 @@ RobotMap = {
         local val = ""
         local mapDepth = #self.map
         for i = 0, mapDepth do
-            val = val .. "|"
+            val = "|" .. val
             local rowDepth = #self.map[i]
             for j = 0, rowDepth do
                 local cell = self.map[i][j]
                 if i == self.position.lat and j == self.position.lng then
-                    val = val .. "R|"
+                    val = "|R" .. val
                 elseif cell == CellStatus.CLEAN then
-                    val = val .. " |"
+                    val = "| " .. val
                 elseif cell == CellStatus.OBSTACLE then
-                    val = val .. "X|"
+                    val = "|X" .. val
                 elseif cell == CellStatus.DIRTY then
-                    val = val .. "D|"
+                    val = "|D" .. val
                 elseif cell == CellStatus.TO_EXPLORE then
-                    val = val .. "?|"
+                    val = "|?" .. val
                 end
             end
-            val = val .. "\n"
+            if i < mapDepth then
+                val = "\n" .. val
+            end
         end
         return val
+    end,
+
+    encodeCoordinates = function(lat, lng)
+        return lat .. "|" .. lng
+    end,
+
+    decodeCoordinates = function(coordinatesString)
+        for lat, lng in string.gmatch(coordinatesString, "(%w+)|(%w+)") do
+            return tonumber(lat), tonumber(lng)
+        end
     end
 
 
 }
 
-return RobotMap
+return Map

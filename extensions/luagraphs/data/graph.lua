@@ -42,32 +42,25 @@ function graph:changeEdgeWeight(v, w, weight)
     if weight == nil then
         error("You must specify the new weight value for the provided edge")
     end
-    if self.directed then
-        local list = self.adjList[v]
-        if list ~= nil and list.N ~= 0 then
-            for i = 0, list.N-1 do
-                if list.a[i]:to() == w then
-                    list.a[i].weight = weight
-                    return
-                end
+    local edges = self.adjList[v]
+    if edges ~= nil then
+        for i = 0, edges.N-1 do
+            if edges.a[i]:to() == w then
+                edges.a[i].weight = weight
+                return
             end
         end
-    else
-        local listFrom = self.adjList[v]
-        local listTo = self.adjList[w]
-        if listFrom ~= nil and listTo ~= nil and listFrom.N ~= 0 and listTo.N ~= 0 then
-            for i = 0, listFrom.N-1 do
-                if listFrom.a[i]:to() == w then
-                    listFrom.a[i].weight = weight
-                    break
-                end
-            end
-            for i = 0, listTo.N-1 do
-                if listTo.a[i]:from() == v then
-                    listTo.a[i].weight = weight
-                    return
-                end
-            end
+    end
+end
+
+function graph:changeAllEdgesWeightOfVertex(v, weight)
+    if weight == nil then
+        error("You must specify the new weight value for the provided edge")
+    end
+    local edges = self.adjList[v]
+    if edges ~= nil then
+        for i = 0, edges.N-1 do
+            edges.a[i].weight = weight
         end
     end
 end
