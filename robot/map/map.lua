@@ -1,24 +1,26 @@
-local commons = require 'util.commons'
+local Set = require('util.set')
+local commons = require('util.commons')
 local Position = commons.Position
 
 local luaList = require('luagraphs.data.list')
 local luaGraph = require('extensions.luagraphs.data.graph')
+local aStar = require('extensions.luagraphs.shortest_paths.a_star')
 
 local CellStatus = require('robot.map.cell_status')
-
-local CELL_TO_EXPLORE_COST = 0
-local CELL_EXPLORED_COST = 1
+local helpers = require('robot.map.helpers')
 
 Map = {
 
     new = function(self)
         local vertices = luaList.create()
         vertices:add(Map.encodeCoordinates(0, 0))
+        local graph = luaGraph.createFromVertexList(vertices)
 
         local o = {
             position = Position:new(0, 0),
             map = {[0] = {[0] = CellStatus.CLEAN}},
-            graph = luaGraph.createFromVertexList(vertices)
+            graph = graph,
+            aStar = aStar.create(graph)
         }
         setmetatable(o, self)
         self.__index = self
@@ -34,13 +36,11 @@ Map = {
                     self.map[i][j] = CellStatus.TO_EXPLORE
                     self.graph:addEdge(
                         Map.encodeCoordinates(i, j - 1),
-                        Map.encodeCoordinates(i, j),
-                        CELL_TO_EXPLORE_COST
+                        Map.encodeCoordinates(i, j)
                     )
                     self.graph:addEdge(
                         Map.encodeCoordinates(i, j),
-                        Map.encodeCoordinates(i + 1, j),
-                        CELL_TO_EXPLORE_COST
+                        Map.encodeCoordinates(i + 1, j)
                     )
                 end
             end
@@ -49,21 +49,18 @@ Map = {
                 self.map[i] = {[0] = CellStatus.TO_EXPLORE}
                 self.graph:addEdge(
                     Map.encodeCoordinates(i - 1, 0),
-                    Map.encodeCoordinates(i, 0),
-                    CELL_TO_EXPLORE_COST
+                    Map.encodeCoordinates(i, 0)
                 )
                 for j = 1, depth do
                     self.map[i][j] = CellStatus.TO_EXPLORE
                     self.graph:addEdge(
                         Map.encodeCoordinates(i, j - 1),
-                        Map.encodeCoordinates(i, j),
-                        CELL_TO_EXPLORE_COST
+                        Map.encodeCoordinates(i, j)
                     )
                     if i ~= depth then
                         self.graph:addEdge(
                             Map.encodeCoordinates(i, j),
-                            Map.encodeCoordinates(i + 1, j),
-                            CELL_TO_EXPLORE_COST
+                            Map.encodeCoordinates(i + 1, j)
                         )
                     end
                 end
@@ -71,25 +68,79 @@ Map = {
         end
     end,
 
+    --- Get path to a given destination
+    ---@param destination table Position - the destination that you want to reach
+    ---@param excludePositions table Set - the set of position to exclude from the path
+    ---@param areNewCellsToExploreMoreImportant boolean if the cells to yet explore are more important than the ones already explored
+    ---@return table list of nodes to follow to reach the destination
+    getPathTo = function (self, destination, excludePositions, areNewCellsToExploreMoreImportant)
+        areNewCellsToExploreMoreImportant = areNewCellsToExploreMoreImportant or true
+        excludePositions = excludePositions or Set:new{}
+
+        return self.aStar:getPath(
+            self.encodeCoordinates(self.position.lat, self.position.lng),
+            destination,
+            function (pointA, pointB)
+
+                if excludePositions:contain(pointB) or excludePositions:contain(pointA) then
+                    return helpers.MAX_PATH_COST
+                end
+
+                local x1, y1 = self.decodeCoordinates(pointA)
+                local x2, y2 = self.decodeCoordinates(pointB)
+
+                local cost = aStar.manhattanDistance(x1, y1, x2, y2)
+                if self.map[x2][y2] == CellStatus.TO_EXPLORE or not areNewCellsToExploreMoreImportant then
+                    return cost
+                else
+                    return cost * 2
+                end
+            end
+        )
+    end,
+
+    --- Get actions to do in order to reach a given destination
+    ---@param destination table Position - the destination that you want to reach
+    ---@param excludeOptions table Set<ExcludeOption> - the set of cells to exclude from the path
+    ---@param areNewCellsToExploreMoreImportant boolean if the cells to yet explore are more important than the ones already explored
+    ---@return table list of action to do to reach the destination
+    getActionsTo = function (self, destination, direction, excludeOptions, areNewCellsToExploreMoreImportant)
+        local excludedPositions = helpers.determinePositionsToExclude(
+            excludeOptions,
+            self.position,
+            direction,
+            Map.encodeCoordinates
+        )
+
+        local path = self:getPathTo(
+            destination,
+            excludedPositions,
+            areNewCellsToExploreMoreImportant
+        )
+        return helpers.determineActions(path, direction, Map.decodeCoordinates)
+    end,
+
+    updatePosition = function (self, newPosition)
+        self.position = newPosition
+    end,
+
     setCellAs = function (self, cellPosition, cellStatus)
         self.map[cellPosition.lat][cellPosition.lng] = cellStatus
         local coordinates = Map.encodeCoordinates(cellPosition.lat, cellPosition.lng)
         if cellStatus == CellStatus.OBSTACLE then
             self.graph:removeVertex(coordinates)
-        else
-            self.graph:changeAllEdgesWeightOfVertex(coordinates, CELL_EXPLORED_COST)
         end
     end,
 
-    setDirtyCell = function (self, cellPosition)
+    setCellAsDiry = function (self, cellPosition)
         self:setCellAs(cellPosition, CellStatus.DIRTY)
     end,
 
-    setCleanCell = function (self, cellPosition)
+    setCellAsClean = function (self, cellPosition)
         self:setCellAs(cellPosition, CellStatus.CLEAN)
     end,
 
-    setObstacleCell = function (self, cellPosition)
+    setCellAsObstacle = function (self, cellPosition)
         self:setCellAs(cellPosition, CellStatus.OBSTACLE)
     end,
 

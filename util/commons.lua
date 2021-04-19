@@ -10,6 +10,10 @@ Commons.Position = {
         self.__index = self
         return o
     end;
+
+    __eq = function (a,b)
+        return a.lat == b.lat and a.lng == b.lng
+    end,
 }
 
 Commons.DirtArea = {

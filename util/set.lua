@@ -8,6 +8,10 @@ Set = {
         return set
     end,
 
+    add = function(self, t)
+        self[t] = true
+    end,
+
     toString = function (self)
         local s = "{"
         local sep = ""
@@ -19,12 +23,7 @@ Set = {
     end,
 
     contain = function (self, elem)
-        for key in pairs(self) do
-            if key == elem then
-                return true
-            end
-        end
-        return false
+        return self[elem] ~= nil
     end,
 
     containGreaterOrEqual = function  (self, elem)
@@ -48,6 +47,14 @@ Set = {
         local list = self:toList()
         table.sort(list, sortFunction)
         return list
+    end,
+
+    map = function (self, mapFunction)
+        local newSet = Set:new{}
+        for key, _ in pairs(self) do
+            newSet:add(mapFunction(key))
+        end
+        return newSet
     end,
 
     __add = function (a,b)

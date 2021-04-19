@@ -70,13 +70,13 @@ function init()
 	-- commons.stringify(map.graph)
 
 
-	--[[ commons.stringify(require('extensions.luagraphs.shortest_paths.a_star').path(
+	--[[ commons.stringify(require('extensions.luagraphs.shortest_paths.a_star').create(map.graph):getPath(
 		"0|0",
 		"2|2",
-		map.graph,
-		true,
-		nil,
-		function (x1, y1, x2, y2)
+		function (pointA, pointB)
+
+			local x1, y1 = map.decodeCoordinates(pointA)
+			local x2, y2 = map.decodeCoordinates(pointB)
 			local cost = math.abs(x1 - x2) + math.abs(y1 - y2)
 			if map.map[x2][y2] == cell_status.TO_EXPLORE then
 				return cost
@@ -86,25 +86,13 @@ function init()
 		end
 	)) ]]
 
-	local g = require('extensions.luagraphs.shortest_paths.pippo').create(map.graph)
-	--commons.stringify(map.graph)
-	commons.printToConsole("----------------")
-	commons.stringify(g:getPath(
-		"2|2",
-		"0|0",
-		function (pointA, pointB)
+	local ex = require('robot.map.exclude_option')
 
-			local x1, y1 = map.decodeCoordinates(pointA)
-			local x2, y2 = map.decodeCoordinates(pointB)
-
-			local cost = math.abs(x1 - x2) + math.abs(y1 - y2)
-			if map.map[x2][y2] == cell_status.TO_EXPLORE then
-				return cost
-			else
-				return cost * 2
-			end
-		end
-	))
+	local cc = map:getActionsTo("2|2", commons.Direction.NORTH, {ex.EXCLUDE_LEFT, ex.EXCLUDE_RIGHT})
+	for i = 1, #cc do
+		commons.printToConsole(require('robot.map.move_action').toString(cc[i]))
+	end
+	commons.printToConsole(map:toString())
 
 end
 
