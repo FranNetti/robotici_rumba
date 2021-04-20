@@ -11,6 +11,7 @@ local RobotAdvance = require 'robot.controller.behaviour.robot_advance'
 local ObstacleAvoidance = require 'robot.controller.behaviour.obstacle_avoidance'
 
 local parameters = require 'robot.parameters'
+local Set = require('util.set')
 
 local INITIAL_ROOM_TEMPERATURE = 12;
 
@@ -88,7 +89,7 @@ function init()
 
 	local ex = require('robot.map.exclude_option')
 
-	local cc = map:getActionsTo("2|2", commons.Direction.NORTH, {ex.EXCLUDE_LEFT, ex.EXCLUDE_RIGHT})
+	local cc = map:getActionsTo("2|2", commons.Direction.NORTH, Set:new{ex.EXCLUDE_LEFT, ex.EXCLUDE_RIGHT, ex.EXCLUDE_BACK})
 	for i = 1, #cc do
 		commons.printToConsole(require('robot.map.move_action').toString(cc[i]))
 	end

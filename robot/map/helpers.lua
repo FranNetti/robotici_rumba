@@ -4,7 +4,6 @@ local ExcludeOption = require('robot.map.exclude_option')
 local Set = require('util.set')
 local commons = require('util.commons')
 local Direction = commons.Direction
-local Position = commons.Position
 
 local helper = {}
 
@@ -82,44 +81,43 @@ end
 function helper.determinePositionsToExclude(excludeOptions, currentPosition, currentDirection, coordinatesEncoder)
     local positionExcluded = Set:new{}
     if excludeOptions ~= nil then
-        for i = 1, #excludeOptions do
-            local opt = excludeOptions[i]
+        for opt, _ in pairs(excludeOptions) do
             if currentDirection == Direction.NORTH then
                 if opt == ExcludeOption.EXCLUDE_FRONT then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))
-                elseif opt == ExcludeOption.EXCLUDE_BACK and currentPosition ~= Position:new(0,0) then
+                elseif opt == ExcludeOption.EXCLUDE_BACK and currentPosition.lat == 0 then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
                 elseif opt == ExcludeOption.EXCLUDE_LEFT then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1))
-                elseif opt == ExcludeOption.EXCLUDE_RIGHT and currentPosition ~= Position:new(0,0) then
+                elseif opt == ExcludeOption.EXCLUDE_RIGHT and currentPosition.lng == 0 then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
                 end
-            elseif currentDirection == Direction.SOUTH and currentPosition ~= Position:new(0,0) then
+            elseif currentDirection == Direction.SOUTH and currentPosition.lat == 0 then
                 if opt == ExcludeOption.EXCLUDE_FRONT then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
                 elseif opt == ExcludeOption.EXCLUDE_BACK then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))
-                elseif opt == ExcludeOption.EXCLUDE_LEFT and currentPosition ~= Position:new(0,0) then
+                elseif opt == ExcludeOption.EXCLUDE_LEFT and currentPosition.lng == 0 then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
                 elseif opt == ExcludeOption.EXCLUDE_RIGHT then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1))
                 end
             elseif currentDirection == Direction.EAST then
-                if opt == ExcludeOption.EXCLUDE_FRONT and currentPosition ~= Position:new(0,0) then
+                if opt == ExcludeOption.EXCLUDE_FRONT and currentPosition.lng == 0 then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
                 elseif opt == ExcludeOption.EXCLUDE_BACK then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1))
                 elseif opt == ExcludeOption.EXCLUDE_LEFT then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))
-                elseif opt == ExcludeOption.EXCLUDE_RIGHT and currentPosition ~= Position:new(0,0)  then
+                elseif opt == ExcludeOption.EXCLUDE_RIGHT and currentPosition.lat == 0  then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
                 end
             else
                 if opt == ExcludeOption.EXCLUDE_FRONT then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1))
-                elseif opt == ExcludeOption.EXCLUDE_BACK and currentPosition ~= Position:new(0,0) then
+                elseif opt == ExcludeOption.EXCLUDE_BACK and currentPosition.lng == 0 then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
-                elseif opt == ExcludeOption.EXCLUDE_LEFT and currentPosition ~= Position:new(0,0) then
+                elseif opt == ExcludeOption.EXCLUDE_LEFT and currentPosition.lat == 0 then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
                 elseif opt == ExcludeOption.EXCLUDE_RIGHT then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))

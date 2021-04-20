@@ -1,15 +1,16 @@
-require 'math'
+local math = require('math')
 math.randomseed(1234)
 
-local sensors = require 'robot.sensors'
-local actuators = require 'robot.actuators'
-local commons = require 'util.commons'
-local State = (require 'robot.commons').State
-local Subsumption = require 'robot.controller.subsumption'
+local sensors = require('robot.sensors')
+local actuators = require('robot.actuators')
+local commons = require('util.commons')
+local RobotState = require('robot.commons').State
+local Map = require('robot.map.map')
 
-local RobotAdvance = require 'robot.controller.behaviour.robot_advance'
- --local ObstacleAvoidance = require 'robot.controller.behaviour.obstacle_avoidance'
- local CollisionAvoidance = require 'robot.controller.behaviour.collision_avoidance'
+local Subsumption = require('robot.controller.subsumption')
+local RobotAdvance = require('robot.controller.behaviour.robot_advance')
+local CollisionAvoidance = require('robot.controller.behaviour.collision_avoidance')
+local RoomCoverage = require('robot.controller.behaviour.room_coverage')
 
 local INITIAL_ROOM_TEMPERATURE = 12;
 
@@ -28,6 +29,7 @@ local battery;
 local compass;
 local brush;
 local robotController;
+local robotMap;
 
 local function setupWorkspace()
 	robot.wheels.set_velocity(0,0)
@@ -38,9 +40,11 @@ local function setupWorkspace()
 	battery = sensors.Battery:new()
 	compass = sensors.Compass:new(robot)
 	brush = actuators.Brush:new(dirt)
+	robotMap = Map:new()
 	robotController = Subsumption:new {
 		RobotAdvance:new(),
-		CollisionAvoidance:new()
+		CollisionAvoidance:new(),
+		RoomCoverage:new(robotMap)
 	}
 	-------
 	commons.stringify(robot)
@@ -59,10 +63,10 @@ function step()
 		robot.positioning.position.y
 	)
 
-	local state = State:new{
-		battery_level = battery.percentage,
-		room_temperature = temperatureSensor.temperature,
-		robot_direction = compass:getCurrentDirection(),
+	local state = RobotState:new{
+		batteryLevel = battery.percentage,
+		roomTemperature = temperatureSensor.temperature,
+		robotDirection = compass:getCurrentDirection(),
 		isDirtDetected = dirtDetector:detect(position),
 		wheels = robot.wheels,
 		proximity = robot.proximity,

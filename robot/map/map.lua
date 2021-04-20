@@ -79,7 +79,7 @@ Map = {
 
         return self.aStar:getPath(
             self.encodeCoordinates(self.position.lat, self.position.lng),
-            destination,
+            self.encodeCoordinates(destination.lat, destination.lng),
             function (pointA, pointB)
 
                 if excludePositions:contain(pointB) or excludePositions:contain(pointA) then
