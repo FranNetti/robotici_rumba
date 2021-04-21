@@ -11,16 +11,17 @@ local TEMPERATURE_INCREASE_PROBABILITY = 0.8
 local MAX_TEMPERATURE_IN_ROOM = 60;
 
 -- compass sensors constants
-local UPPER_NORTH_BOUND = 180.2;
-local LOWER_NORTH_BOUND = 179.8;
-local UPPER_WEST_BOUND = 270.2;
-local LOWER_WEST_BOUND = 269.8;
-local UPPER_SOUTH_BOUND_1 = 360.2;
-local LOWER_SOUTH_BOUND_1 = 359.8;
-local UPPER_SOUTH_BOUND_2 = 0.2;
-local LOWER_SOUTH_BOUND_2 = 0;
-local UPPER_EAST_BOUND = 90.2;
-local LOWER_EAST_BOUND = 89.8;
+
+local UPPER_NORTH_BOUND_1 = 180.3;
+local LOWER_NORTH_BOUND_1 = 179.7;
+local UPPER_NORTH_BOUND_2 = -179.7;
+local LOWER_NORTH_BOUND_2 = -180.3;
+local UPPER_WEST_BOUND = -89.7;
+local LOWER_WEST_BOUND = -90.3;
+local UPPER_SOUTH_BOUND = 0.3;
+local LOWER_SOUTH_BOUND = -0.3;
+local UPPER_EAST_BOUND = 90.3;
+local LOWER_EAST_BOUND = 89.7;
 
 local commons = require 'util.commons'
 local Direction = commons.Direction
@@ -148,19 +149,19 @@ Sensors.Compass = {
     ---Get the current robot direction
     ---@return table Direction
     getCurrentDirection = function (self)
-        local angle = math.deg(self.robot.positioning.orientation:toangleaxis())
+        local angle = math.deg(self.robot.positioning.orientation:toeulerangles())
         local direction;
-        if angle >= LOWER_NORTH_BOUND and angle <= UPPER_NORTH_BOUND then
+        if (angle >= LOWER_NORTH_BOUND_1 and angle <= UPPER_NORTH_BOUND_1) or (angle >= LOWER_NORTH_BOUND_2 and angle <= UPPER_NORTH_BOUND_2) then
             direction = Direction.NORTH
-        elseif angle > UPPER_NORTH_BOUND and angle < LOWER_WEST_BOUND then
+        elseif angle > UPPER_NORTH_BOUND_2 and angle < LOWER_WEST_BOUND then
             direction = Direction.NORTH_WEST
         elseif angle >= LOWER_WEST_BOUND and angle <= UPPER_WEST_BOUND then
             direction = Direction.WEST
-        elseif angle > UPPER_WEST_BOUND and angle < LOWER_SOUTH_BOUND_2 then
+        elseif angle > UPPER_WEST_BOUND and angle < LOWER_SOUTH_BOUND then
             direction = Direction.SOUTH_WEST
-        elseif (angle >= LOWER_SOUTH_BOUND_1 and angle <= UPPER_SOUTH_BOUND_1) or (angle >= LOWER_SOUTH_BOUND_2 and angle <= UPPER_SOUTH_BOUND_2) then
+        elseif angle >= LOWER_SOUTH_BOUND and angle <= UPPER_SOUTH_BOUND then
             direction = Direction.SOUTH
-        elseif angle > UPPER_SOUTH_BOUND_2 and angle < LOWER_EAST_BOUND then
+        elseif angle > UPPER_SOUTH_BOUND and angle < LOWER_EAST_BOUND then
             direction = Direction.SOUTH_EAST
         elseif angle >= LOWER_EAST_BOUND and angle <= UPPER_EAST_BOUND then
             direction = Direction.EAST

@@ -23,9 +23,7 @@ CollisionAvoidance = {
             or self.isObjectInLeftRange(state.proximity)
             or self.isObjectInRightRange(state.proximity)
         if isCloseToObject then
-            return Action:new({
-                speed = {left = 0, right = 0}
-            }, {1})
+            return Action.stayStill({1})
         end
         return Action:new({})
     end,

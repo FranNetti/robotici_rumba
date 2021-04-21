@@ -1,3 +1,5 @@
+local robot_parameters = require('robot.parameters')
+
 Robot = {}
 
 Robot.State = {
@@ -43,6 +45,51 @@ Robot.Action = {
         self.__index = self
         return o
     end;
+
+    turnLeft = function (levelsToSubsume)
+        return Robot.Action:new({
+            speed = {
+                left = 0,
+                right = robot_parameters.robotTurningSpeed
+            }
+        }, levelsToSubsume)
+    end,
+
+    turnRight = function (levelsToSubsume)
+        return Robot.Action:new({
+            speed = {
+                left = robot_parameters.robotTurningSpeed,
+                right = 0
+            }
+        }, levelsToSubsume)
+    end,
+
+    goAhead = function (levelsToSubsume)
+        return Robot.Action:new({
+            speed = {
+                left = robot_parameters.robotForwardSpeed,
+                right = robot_parameters.robotForwardSpeed
+            }
+        }, levelsToSubsume)
+    end,
+
+    goBack = function (levelsToSubsume)
+        return Robot.Action:new({
+            speed = {
+                left = robot_parameters.robotReverseSpeed,
+                right = robot_parameters.robotReverseSpeed
+            }
+        }, levelsToSubsume)
+    end,
+
+    stayStill = function (levelsToSubsume)
+        return Robot.Action:new({
+            speed = {
+                left = 0,
+                right = 0
+            }
+        }, levelsToSubsume)
+    end,
 
     __add = function (a,b)
         local actions = {}

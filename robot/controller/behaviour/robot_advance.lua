@@ -1,5 +1,4 @@
 local Action = require('robot.commons').Action
-local parameters = require('robot.parameters')
 
 RobotAdvance = {
 
@@ -11,12 +10,7 @@ RobotAdvance = {
     end,
 
     tick = function (_, _)
-        return Action:new {
-            speed = {
-                left = parameters.robotForwardSpeed,
-                right = parameters.robotForwardSpeed
-            }
-        }
+        return Action.goAhead()
     end
 
 }
