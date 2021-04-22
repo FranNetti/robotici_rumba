@@ -43,7 +43,7 @@ local function setupWorkspace()
 	robotMap = Map:new()
 	robotController = Subsumption:new {
 		RobotAdvance:new(),
-		CollisionAvoidance:new(),
+		-- CollisionAvoidance:new(),
 		RoomCoverage:new(robotMap)
 	}
 	-------

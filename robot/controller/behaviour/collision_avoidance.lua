@@ -1,4 +1,5 @@
-local Action = (require 'robot.commons').Action
+local Action = require('robot.commons').Action
+local commons = require('util.commons')
 
 local CLOSE_OBJECT_FRONT_DISTANCE = 0.1;
 local CLOSE_OBJECT_LEFT_DISTANCE_LIST = {
@@ -19,11 +20,21 @@ CollisionAvoidance = {
 
     tick = function (self, state)
         local isCloseToObject =
-            self.isObjectInFrontRange(state.proximity)
-            or self.isObjectInLeftRange(state.proximity)
+            --self.isObjectInFrontRange(state.proximity)
+            --[[ or ]] self.isObjectInLeftRange(state.proximity)
             or self.isObjectInRightRange(state.proximity)
         if isCloseToObject then
-            return Action.stayStill({1})
+
+            --[[ commons.print("Obstacle encountered!!!")
+            for i = 1, #state.proximity do
+                commons.print("[" .. i .. "]" .. " - " .. state.proximity[i].value)
+            end
+            commons.print("----------------") ]]
+
+            return Action:new({
+                speed = {left = 0, right = 0},
+                leds = {switchedOn = true, color = commons.Color.YELLOW}
+            }, {1})
         end
         return Action:new({})
     end,

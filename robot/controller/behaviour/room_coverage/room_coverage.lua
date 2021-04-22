@@ -22,10 +22,11 @@ RoomCoverage = {
             map = map,
             state = State.STAND_BY,
             actions = nil,
-            target = nil,
+            target = Position:new(0,0),
             distanceTravelled = 0,
             oldPosition = nil,
             oldDirection = nil,
+            currentDirection = Direction.NORTH
         }
         setmetatable(o, self)
         self.__index = self
@@ -35,35 +36,39 @@ RoomCoverage = {
     tick = function (self, roomState)
         if self.state == State.STAND_BY then
             return self:standByPhase(roomState)
-        elseif self.state == State.EXPLORING then
+        elseif self.state == State.EXPLORING or self.state == State.GOING_HOME then
             return self:exploringPhase(roomState)
+        elseif self.state == State.TARGET_REACHED then
+            return self:targetReachedPhase(roomState)
         else
             commons.printToConsole(self.map:toString())
         end
     end,
 
     standByPhase = function (self, state)
-        if self.target == nil then
-            self.target = Position:new(5,5)
-        else
-            self.target = Position:new(self.target.lat + 1, self.target.lng + 1)
-        end
-
+        self.target = Position:new(self.target.lat + 1, self.target.lng + 1)
         self.map:addNewDiagonalPoint(self.target.lat)
+
         local excludedOptions = Set:new{}
         if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
             excludedOptions = excludedOptions + Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
         end
 
-        self.actions = self.map:getActionsTo(self.target, state.robotDirection.direction, excludedOptions)
+        commons.print("[ROOM COVERAGE]")
+        commons.print(
+            "(" .. self.map.encodeCoordinates(self.map.position.lat, self.map.position.lng) .. " - "
+            .. self.currentDirection.name .. ") - ("
+            .. self.map.encodeCoordinates(self.target.lat, self.target.lng) .. ")"
+        )
+        commons.print("---------------")
+
+        self.actions = self.map:getActionsTo(self.target, self.currentDirection, excludedOptions)
         self.state = State.EXPLORING
 
-        return RobotAction:new({
-            speed = {
-                left = 0,
-                right = 0
-            }
-        }, {1})
+        commons.printToConsole(self.map:toString())
+
+        self.distanceTravelled = 0
+        return RobotAction.stayStill({1})
     end,
 
     exploringPhase = function (self, state)
@@ -78,23 +83,49 @@ RoomCoverage = {
         if currentAction == MoveAction.GO_AHEAD then
             isMoveActionNotFinished, robotAction = self:handleGoAheadMove(state, nextAction)
         elseif currentAction == MoveAction.TURN_LEFT then
-            isMoveActionNotFinished, robotAction = self:handleTurnLeftMove(state, nextAction)
+            isMoveActionNotFinished, robotAction  = self:handleTurnLeftMove(state, nextAction)
         elseif currentAction == MoveAction.TURN_RIGHT then
-            isMoveActionNotFinished, robotAction = self:handleTurnRightMove(state, nextAction)
+            isMoveActionNotFinished, robotAction  = self:handleTurnRightMove(state, nextAction)
+        else
+            isMoveActionNotFinished, robotAction  = self:handleGoBackMove(state)
         end
 
         if isMoveActionNotFinished then
             return robotAction
         end
 
+        commons.stringify(currentAction)
+        commons.stringify(self.oldDirection)
+        commons.stringify(self.currentDirection)
+        commons.stringify("-------")
+
         self.map:setCellAsClean(self.map.position)
         self.oldPosition = self.map.position
-        self.oldDirection = state.robotDirection.direction
+        self.oldDirection = self.currentDirection
+        self.currentDirection = MoveAction.nextDirection(self.currentDirection, currentAction)
         table.remove(self.actions, 1)
+
+        commons.stringify(self.oldDirection)
+        commons.stringify(self.currentDirection)
+        commons.stringify("********")
+
         return self:exploringPhaseNextMove()
     end,
 
-    handleGoAheadMove = function (self, state, nextAction)
+    targetReachedPhase = function (self, state)
+        self.actions = self.map:getActionsTo(Position:new(0,0), self.currentDirection)
+
+        for i = 1, #self.actions do
+            commons.print
+            (self.actions[i])
+        end
+
+        self.state = State.GOING_HOME
+        self.distanceTravelled = 0
+        return RobotAction.stayStill({1})
+    end,
+
+    handleGoAheadMove = function (self, _, nextAction)
         if (nextAction == MoveAction.TURN_LEFT or nextAction == MoveAction.TURN_RIGHT)
               and self.distanceTravelled < robot_parameters.squareSideDimension / 2 then
             return true, RobotAction:new({})
@@ -104,17 +135,9 @@ RoomCoverage = {
             return true, RobotAction:new({})
         else
             self.distanceTravelled = self.distanceTravelled - robot_parameters.squareSideDimension
-            if state.robotDirection.direction == Direction.NORTH then
-                self.map.position = Position:new(self.map.position.lat + 1, self.map.position.lng)
-            elseif state.robotDirection.direction == Direction.SOUTH then
-                self.map.position = Position:new(self.map.position.lat - 1, self.map.position.lng)
-            elseif state.robotDirection.direction == Direction.WEST then
-                self.map.position = Position:new(self.map.position.lat, self.map.position.lng + 1)
-            else
-                self.map.position = Position:new(self.map.position.lat, self.map.position.lng - 1)
-            end
+            self.map.position = MoveAction.nextPosition(self.map.position, self.currentDirection, MoveAction.GO_AHEAD)
         end
-        return false, nil
+        return false
     end,
 
     handleTurnLeftMove = function (self, state, nextAction)
@@ -127,23 +150,15 @@ RoomCoverage = {
             nextDirection = Direction.NORTH
         end
 
-        commons.print(state.robotDirection.angle)
-
         if state.wheels.velocity_left == 0 and state.wheels.velocity_right ~= 0 and state.robotDirection.direction == nextDirection then
+            -- self.currentDirection = MoveAction.nextDirection(self.currentDirection, MoveAction.TURN_LEFT)
             if nextAction ~= MoveAction.TURN_LEFT and nextAction ~= MoveAction.TURN_RIGHT then
                 self.distanceTravelled = robot_parameters.squareSideDimension / 2
                 self.actions[1] = MoveAction.GO_AHEAD
+                self.currentDirection = MoveAction.nextDirection(self.currentDirection, MoveAction.TURN_LEFT)
                 return true, RobotAction:new({})
             else
-                if nextDirection == Direction.EAST then
-                    self.map.position = Position:new(self.map.position.lat, self.map.position.lng - 1)
-                elseif nextDirection == Direction.WEST then
-                    self.map.position = Position:new(self.map.position.lat, self.map.position.lng + 1)
-                elseif nextDirection == Direction.NORTH then
-                    self.map.position = Position:new(self.map.position.lat + 1, self.map.position.lng)
-                else
-                    self.map.position = Position:new(self.map.position.lat - 1, self.map.position.lng)
-                end
+                self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, MoveAction.TURN_LEFT)
                 return false, nil
             end
         elseif state.wheels.velocity_left == 0 and state.wheels.velocity_right ~= 0 and state.robotDirection.direction ~= nextDirection then
@@ -151,6 +166,7 @@ RoomCoverage = {
         else
             self.distanceTravelled = -robot_parameters.squareSideDimension / 2
             table.insert(self.actions, 1, MoveAction.GO_BACK)
+            self.map.position = MoveAction.nextPosition(self.map.position, state.robotDirection.direction, MoveAction.GO_AHEAD)
             return true, RobotAction.goBack({1})
         end
     end,
@@ -165,23 +181,14 @@ RoomCoverage = {
             nextDirection = Direction.SOUTH
         end
 
-        commons.print(state.robotDirection.angle)
-
         if state.wheels.velocity_left ~= 0 and state.wheels.velocity_right == 0 and state.robotDirection.direction == nextDirection then
+            self.currentDirection = MoveAction.nextDirection(self.currentDirection, MoveAction.TURN_RIGHT)
             if nextAction ~= MoveAction.TURN_LEFT and nextAction ~= MoveAction.TURN_RIGHT then
                 self.distanceTravelled = robot_parameters.squareSideDimension / 2
                 self.actions[1] = MoveAction.GO_AHEAD
                 return true, RobotAction:new({})
             else
-                if nextDirection == Direction.EAST then
-                    self.map.position = Position:new(self.map.position.lat, self.map.position.lng - 1)
-                elseif nextDirection == Direction.WEST then
-                    self.map.position = Position:new(self.map.position.lat, self.map.position.lng + 1)
-                elseif nextDirection == Direction.NORTH then
-                    self.map.position = Position:new(self.map.position.lat + 1, self.map.position.lng)
-                else
-                    self.map.position = Position:new(self.map.position.lat - 1, self.map.position.lng)
-                end
+                self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, MoveAction.TURN_RIGHT)
                 return false, nil
             end
         elseif state.wheels.velocity_left ~= 0 and state.wheels.velocity_right == 0 and state.robotDirection.direction ~= nextDirection then
@@ -189,13 +196,27 @@ RoomCoverage = {
         else
             self.distanceTravelled = -robot_parameters.squareSideDimension / 2
             table.insert(self.actions, 1, MoveAction.GO_BACK)
+            self.map.position = MoveAction.nextPosition(self.map.position, state.robotDirection.direction, MoveAction.GO_AHEAD)
             return true, RobotAction.goBack({1})
         end
     end,
 
+    handleGoBackMove = function (self, state)
+        if self.distanceTravelled > -robot_parameters.squareSideDimension then
+            return true, RobotAction.goBack({1})
+        else
+            self.distanceTravelled = self.distanceTravelled + robot_parameters.squareSideDimension
+            self.map.position = MoveAction.nextPosition(self.map.position, state.robotDirection.direction, MoveAction.GO_BACK)
+        end
+        return false, nil
+    end,
+
     exploringPhaseNextMove = function (self)
-        if #self.actions == 0 then
+        if #self.actions == 0 and self.state == State.EXPLORING then
             self.state = State.TARGET_REACHED
+            return RobotAction.stayStill({1})
+        elseif #self.actions == 0 and self.state == State.GOING_HOME then
+            self.state = State.STAND_BY
             return RobotAction.stayStill({1})
         else
             local nextMove = self.actions[1]

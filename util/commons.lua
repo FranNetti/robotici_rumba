@@ -42,8 +42,38 @@ Commons.DirtArea = {
 }
 
 Commons.Direction = {
-    NORTH = "NORTH", EAST = "EAST", SOUTH = "SOUTH", WEST = "WEST",
-    NORTH_EAST = "NORTH_EAST", NORTH_WEST = "NORTH_WEST", SOUTH_EAST = "SOUTH_EAST", SOUTH_WEST = "SOUTH_WEST"
+    NORTH = {
+        name = "NORTH",
+        ranges = { 180.4, 179.6, -179.6, -180.4 }
+    },
+    EAST = {
+        name = "EAST",
+        ranges = { 90.4, 89.6 }
+    },
+    SOUTH = {
+        name = "SOUTH",
+        ranges = { 0.4, -0.4 }
+    },
+    WEST ={
+        name = "WEST",
+        ranges = { -89.6, -90.4 }
+    },
+    NORTH_EAST ={
+        name = "NORTH_EAST",
+        ranges = {}
+    },
+    NORTH_WEST ={
+        name = "NORTH_WEST",
+        ranges = { }
+    },
+    SOUTH_EAST ={
+        name = "SOUTH_EAST",
+        ranges = {}
+    },
+    SOUTH_WEST = {
+        name = "SOUTH_WEST",
+        ranges = {}
+    }
 }
 
 Commons.Color = {
