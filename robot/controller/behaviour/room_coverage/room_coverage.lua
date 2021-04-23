@@ -1,4 +1,5 @@
 local commons = require('util.commons')
+local robot_utils = require('robot.controller.behaviour.utils')
 local robot_parameters = require('robot.parameters')
 
 local Position = commons.Position
@@ -26,7 +27,6 @@ RoomCoverage = {
             distanceTravelled = 0,
             oldPosition = nil,
             oldDirection = nil,
-            currentDirection = Direction.NORTH
         }
         setmetatable(o, self)
         self.__index = self
@@ -56,13 +56,13 @@ RoomCoverage = {
 
         commons.print("[ROOM COVERAGE]")
         commons.print(
-            "(" .. self.map.encodeCoordinates(self.map.position.lat, self.map.position.lng) .. " - "
-            .. self.currentDirection.name .. ") - ("
+            "(" .. self.map.encodeCoordinates(self.map.position.lat, self.map.position.lng) .. ") ["
+            .. robot_utils.discreteDirection(state.robotDirection).name ..  "] - ("
             .. self.map.encodeCoordinates(self.target.lat, self.target.lng) .. ")"
         )
         commons.print("---------------")
 
-        self.actions = self.map:getActionsTo(self.target, state.robotDirection.direction, excludedOptions)
+        self.actions = self.map:getActionsTo(self.target, robot_utils.discreteDirection(state.robotDirection), excludedOptions)
         self.state = State.EXPLORING
 
         commons.printToConsole(self.map:toString())
@@ -94,31 +94,16 @@ RoomCoverage = {
             return robotAction
         end
 
-        commons.stringify(currentAction)
-        commons.stringify(self.oldDirection)
-        --commons.stringify(self.currentDirection)
-        commons.stringify("-------")
-
         self.map:setCellAsClean(self.map.position)
         self.oldPosition = self.map.position
-        self.oldDirection = state.robotDirection.direction
-        --self.currentDirection = MoveAction.nextDirection(self.currentDirection, currentAction)
+        self.oldDirection = robot_utils.discreteDirection(state.robotDirection)
         table.remove(self.actions, 1)
-
-        commons.stringify(self.oldDirection)
-        --commons.stringify(self.currentDirection)
-        commons.stringify("********")
 
         return self:exploringPhaseNextMove()
     end,
 
     targetReachedPhase = function (self, state)
-        self.actions = self.map:getActionsTo(Position:new(0,0), state.robotDirection.direction)
-
-        for i = 1, #self.actions do
-            commons.print
-            (self.actions[i])
-        end
+        self.actions = self.map:getActionsTo(Position:new(0,0), robot_utils.discreteDirection(state.robotDirection))
 
         self.state = State.GOING_HOME
         self.distanceTravelled = 0
@@ -135,20 +120,18 @@ RoomCoverage = {
             return true, RobotAction:new({})
         else
             self.distanceTravelled = self.distanceTravelled - robot_parameters.squareSideDimension
-            self.map.position = MoveAction.nextPosition(self.map.position, state.robotDirection.direction, MoveAction.GO_AHEAD)
+            self.map.position = MoveAction.nextPosition(self.map.position, robot_utils.discreteDirection(state.robotDirection), MoveAction.GO_AHEAD)
+            return false, nil
         end
-        return false
     end,
 
     handleTurnLeftMove = function (self, state, nextAction)
         local nextDirection = MoveAction.nextDirection(self.oldDirection, MoveAction.TURN_LEFT)
 
         if state.wheels.velocity_left == 0 and state.wheels.velocity_right ~= 0 and state.robotDirection.direction == nextDirection then
-            -- self.currentDirection = MoveAction.nextDirection(self.currentDirection, MoveAction.TURN_LEFT)
             if nextAction ~= MoveAction.TURN_LEFT and nextAction ~= MoveAction.TURN_RIGHT then
                 self.distanceTravelled = robot_parameters.squareSideDimension / 2
                 self.actions[1] = MoveAction.GO_AHEAD
-                --self.currentDirection = MoveAction.nextDirection(self.currentDirection, MoveAction.TURN_LEFT)
                 return true, RobotAction:new({})
             else
                 self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, MoveAction.TURN_LEFT)
@@ -159,7 +142,7 @@ RoomCoverage = {
         else
             self.distanceTravelled = -robot_parameters.squareSideDimension / 2
             table.insert(self.actions, 1, MoveAction.GO_BACK)
-            self.map.position = MoveAction.nextPosition(self.map.position, state.robotDirection.direction, MoveAction.GO_AHEAD)
+            self.map.position = MoveAction.nextPosition(self.map.position, robot_utils.discreteDirection(state.robotDirection), MoveAction.GO_AHEAD)
             return true, RobotAction.goBack({1})
         end
     end,
@@ -168,7 +151,6 @@ RoomCoverage = {
         local nextDirection = MoveAction.nextDirection(self.oldDirection, MoveAction.TURN_RIGHT)
 
         if state.wheels.velocity_left ~= 0 and state.wheels.velocity_right == 0 and state.robotDirection.direction == nextDirection then
-            --self.currentDirection = MoveAction.nextDirection(self.currentDirection, MoveAction.TURN_RIGHT)
             if nextAction ~= MoveAction.TURN_LEFT and nextAction ~= MoveAction.TURN_RIGHT then
                 self.distanceTravelled = robot_parameters.squareSideDimension / 2
                 self.actions[1] = MoveAction.GO_AHEAD
@@ -182,7 +164,7 @@ RoomCoverage = {
         else
             self.distanceTravelled = -robot_parameters.squareSideDimension / 2
             table.insert(self.actions, 1, MoveAction.GO_BACK)
-            self.map.position = MoveAction.nextPosition(self.map.position, state.robotDirection.direction, MoveAction.GO_AHEAD)
+            self.map.position = MoveAction.nextPosition(self.map.position, robot_utils.discreteDirection(state.robotDirection), MoveAction.GO_AHEAD)
             return true, RobotAction.goBack({1})
         end
     end,
@@ -192,7 +174,7 @@ RoomCoverage = {
             return true, RobotAction.goBack({1})
         else
             self.distanceTravelled = self.distanceTravelled + robot_parameters.squareSideDimension
-            self.map.position = MoveAction.nextPosition(self.map.position, state.robotDirection.direction, MoveAction.GO_BACK)
+            self.map.position = MoveAction.nextPosition(self.map.position, robot_utils.discreteDirection(state.robotDirection), MoveAction.GO_BACK)
         end
         return false, nil
     end,
