@@ -30,7 +30,7 @@ Subsumption = {
                     error("You're trying to subsume a level higher than you!")
                 end ]]
                 behavioursToSubsume = behavioursToSubsume + Set:new(action.levelsToSubsume)
-                table.insert(behavioursActions, 1, action)
+                table.insert(behavioursActions, action)
             end
         end
         local finalAction = Action:new{}

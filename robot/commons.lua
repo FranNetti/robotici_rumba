@@ -49,7 +49,7 @@ Robot.Action = {
     turnLeft = function (levelsToSubsume)
         return Robot.Action:new({
             speed = {
-                left = 0,
+                left = robot_parameters.robotNotTurningTyreSpeed,
                 right = robot_parameters.robotTurningSpeed
             }
         }, levelsToSubsume)
@@ -59,7 +59,7 @@ Robot.Action = {
         return Robot.Action:new({
             speed = {
                 left = robot_parameters.robotTurningSpeed,
-                right = 0
+                right = robot_parameters.robotNotTurningTyreSpeed
             }
         }, levelsToSubsume)
     end,

@@ -6,5 +6,6 @@ return {
     robotForwardSpeed = 10,
     robotReverseSpeed = -5,
     robotTurningSpeed = 5,
-    robotAdjustAngleSpeed = 9
+    robotNotTurningTyreSpeed = 0,
+    robotAdjustAngleSpeed = 9,
 }

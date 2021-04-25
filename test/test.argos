@@ -65,7 +65,7 @@
     <!-- Foot Bot -->
     <foot-bot id="rumba_robot">
       <controller config="rumba" />
-      <body position="1.75,1.75,0" orientation="180,0,0" />
+      <body position="0,0,0" orientation="180,0,0" />
     </foot-bot>
 
 

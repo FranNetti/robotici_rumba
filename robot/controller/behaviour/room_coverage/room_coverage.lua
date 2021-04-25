@@ -126,47 +126,51 @@ RoomCoverage = {
     end,
 
     handleTurnLeftMove = function (self, state, nextAction)
-        local nextDirection = MoveAction.nextDirection(self.oldDirection, MoveAction.TURN_LEFT)
-
-        if state.wheels.velocity_left == 0 and state.wheels.velocity_right ~= 0 and state.robotDirection.direction == nextDirection then
-            if nextAction ~= MoveAction.TURN_LEFT and nextAction ~= MoveAction.TURN_RIGHT then
-                self.distanceTravelled = robot_parameters.squareSideDimension / 2
-                self.actions[1] = MoveAction.GO_AHEAD
-                return true, RobotAction:new({})
-            else
-                self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, MoveAction.TURN_LEFT)
-                return false, nil
-            end
-        elseif state.wheels.velocity_left == 0 and state.wheels.velocity_right ~= 0 and state.robotDirection.direction ~= nextDirection then
-            return true, RobotAction.turnLeft({1})
-        else
-            self.distanceTravelled = -robot_parameters.squareSideDimension / 2
-            table.insert(self.actions, 1, MoveAction.GO_BACK)
-            self.map.position = MoveAction.nextPosition(self.map.position, robot_utils.discreteDirection(state.robotDirection), MoveAction.GO_AHEAD)
-            return true, RobotAction.goBack({1})
-        end
+        return self:handleTurnMove(
+            MoveAction.TURN_LEFT,
+            state,
+            state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
+              and state.wheels.velocity_right ~= 0,
+            nextAction
+        )
     end,
 
     handleTurnRightMove = function (self, state, nextAction)
-        local nextDirection = MoveAction.nextDirection(self.oldDirection, MoveAction.TURN_RIGHT)
+        return self:handleTurnMove(
+            MoveAction.TURN_RIGHT,
+            state,
+            state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
+              and state.wheels.velocity_left ~= 0,
+            nextAction
+        )
+    end,
 
-        if state.wheels.velocity_left ~= 0 and state.wheels.velocity_right == 0 and state.robotDirection.direction == nextDirection then
-            if nextAction ~= MoveAction.TURN_LEFT and nextAction ~= MoveAction.TURN_RIGHT then
+    handleTurnMove = function (self, turnDirection, state, isRobotTurning, nextAction)
+        local nextDirection = MoveAction.nextDirection(self.oldDirection, turnDirection)
+
+        if isRobotTurning and state.robotDirection.direction == nextDirection then
+            if nextAction ~= MoveAction.TURN_LEFT
+              and nextAction ~= MoveAction.TURN_RIGHT then
                 self.distanceTravelled = robot_parameters.squareSideDimension / 2
                 self.actions[1] = MoveAction.GO_AHEAD
                 return true, RobotAction:new({})
             else
-                self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, MoveAction.TURN_RIGHT)
+                self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, turnDirection)
                 return false, nil
             end
-        elseif state.wheels.velocity_left ~= 0 and state.wheels.velocity_right == 0 and state.robotDirection.direction ~= nextDirection then
-            return true, RobotAction.turnRight({1})
+        elseif isRobotTurning and state.robotDirection.direction ~= nextDirection then
+            if turnDirection == MoveAction.TURN_LEFT then
+                return true, RobotAction.turnLeft({1})
+            else
+                return true, RobotAction.turnRight({1})
+            end
         else
             self.distanceTravelled = -robot_parameters.squareSideDimension / 2
             table.insert(self.actions, 1, MoveAction.GO_BACK)
             self.map.position = MoveAction.nextPosition(self.map.position, robot_utils.discreteDirection(state.robotDirection), MoveAction.GO_AHEAD)
             return true, RobotAction.goBack({1})
         end
+
     end,
 
     handleGoBackMove = function (self, state)
