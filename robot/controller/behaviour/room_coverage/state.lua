@@ -7,8 +7,8 @@ State = {
     TARGET_REACHED = "TARGET REACHED",
     ---going back home
     GOING_HOME = "GOING HOME",
-    -- home reached, turning the robot in the right direction
-    CALIBRATING_HOME = "CALIBRATING HOME",
+    -- obstacle encountered during any phase of the robot movement
+    OBSTACLE_ENCOUNTERED = "OBSTACLE ENCOUNTERED",
     ---room explored
     EXPLORED = "EXPLORED",
 }

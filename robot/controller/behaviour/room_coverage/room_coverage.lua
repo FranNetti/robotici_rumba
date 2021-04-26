@@ -27,6 +27,7 @@ RoomCoverage = {
             distanceTravelled = 0,
             oldPosition = nil,
             oldDirection = nil,
+            oldAction = nil,
         }
         setmetatable(o, self)
         self.__index = self
@@ -40,10 +41,14 @@ RoomCoverage = {
             return self:exploringPhase(roomState)
         elseif self.state == State.TARGET_REACHED then
             return self:targetReachedPhase(roomState)
+        elseif self.state == State.OBSTACLE_ENCOUNTERED then
+            return self:handleObstacle(roomState)
         else
             commons.printToConsole(self.map:toString())
         end
     end,
+
+    --[[ --------- STAND BY ---------- ]]
 
     standByPhase = function (self, state)
         self.target = Position:new(self.target.lat + 1, self.target.lng + 1)
@@ -71,6 +76,8 @@ RoomCoverage = {
         return RobotAction.stayStill({1})
     end,
 
+    --[[ --------- EXPLORING ---------- ]]
+
     exploringPhase = function (self, state)
         self.distanceTravelled = self.distanceTravelled + state.wheels.distance_left
         local currentAction = self.actions[1]
@@ -81,33 +88,50 @@ RoomCoverage = {
 
         local isMoveActionNotFinished, robotAction = false, nil
         if currentAction == MoveAction.GO_AHEAD then
-            isMoveActionNotFinished, robotAction = self:handleGoAheadMove(state, nextAction)
+            if CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
+                self.state = State.OBSTACLE_ENCOUNTERED
+            else
+                isMoveActionNotFinished, robotAction = self:handleGoAheadMove(state, nextAction)
+            end
         elseif currentAction == MoveAction.TURN_LEFT then
-            isMoveActionNotFinished, robotAction  = self:handleTurnLeftMove(state, nextAction)
+            if CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity) then
+                self.state = State.OBSTACLE_ENCOUNTERED
+            else
+                isMoveActionNotFinished, robotAction  = self:handleTurnLeftMove(state, nextAction)
+            end
         elseif currentAction == MoveAction.TURN_RIGHT then
-            isMoveActionNotFinished, robotAction  = self:handleTurnRightMove(state, nextAction)
+            if CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity) then
+                self.state = State.OBSTACLE_ENCOUNTERED
+            else
+                isMoveActionNotFinished, robotAction  = self:handleTurnRightMove(state, nextAction)
+            end
         else
-            isMoveActionNotFinished, robotAction  = self:handleGoBackMove(state)
+            if CollisionAvoidanceBehaviour.isObjectInBackRange(state.proximity) then
+                self.state = State.OBSTACLE_ENCOUNTERED
+            else
+                isMoveActionNotFinished, robotAction  = self:handleGoBackMove(state)
+            end
         end
 
-        if isMoveActionNotFinished then
+        if self.state == State.OBSTACLE_ENCOUNTERED then
+            local nextPosition = MoveAction.nextPosition(
+                self.map.position,
+                robot_utils.discreteDirection(state.robotDirection),
+                currentAction
+            )
+            self.map:setCellAsDirty(nextPosition)
+            return RobotAction:new{}
+        elseif isMoveActionNotFinished then
             return robotAction
+        else
+            self.map:setCellAsClean(self.map.position)
+            self.oldPosition = self.map.position
+            self.oldAction = currentAction
+            self.oldDirection = robot_utils.discreteDirection(state.robotDirection)
+            table.remove(self.actions, 1)
+
+            return self:exploringPhaseNextMove()
         end
-
-        self.map:setCellAsClean(self.map.position)
-        self.oldPosition = self.map.position
-        self.oldDirection = robot_utils.discreteDirection(state.robotDirection)
-        table.remove(self.actions, 1)
-
-        return self:exploringPhaseNextMove()
-    end,
-
-    targetReachedPhase = function (self, state)
-        self.actions = self.map:getActionsTo(Position:new(0,0), robot_utils.discreteDirection(state.robotDirection))
-
-        self.state = State.GOING_HOME
-        self.distanceTravelled = 0
-        return RobotAction.stayStill({1})
     end,
 
     handleGoAheadMove = function (self, state, nextAction)
@@ -200,6 +224,96 @@ RoomCoverage = {
                 return RobotAction.turnLeft({1})
             elseif nextMove == MoveAction.TURN_RIGHT then
                 return RobotAction.turnRight({1})
+            end
+        end
+    end,
+
+    --[[ ---------- TARGET REACHED --------- ]]
+
+    targetReachedPhase = function (self, state)
+        self.actions = self.map:getActionsTo(Position:new(0,0), robot_utils.discreteDirection(state.robotDirection))
+
+        self.state = State.GOING_HOME
+        self.distanceTravelled = 0
+        return RobotAction.stayStill({1})
+    end,
+
+    --[[ --------- HANDLE OBSTACLE ---------- ]]
+
+    handleObstacle = function (self, state)
+        local currentAction = self.actions[1]
+
+        local isMoveActionNotFinished, robotAction = false, nil
+        if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK then
+            isMoveActionNotFinished, robotAction = self:handleCancelVerticalMove(state, currentAction)
+        elseif currentAction == MoveAction.TURN_LEFT then
+            isMoveActionNotFinished, robotAction  = self:handleTurnLeftMove(state, nextAction)
+        elseif currentAction == MoveAction.TURN_RIGHT then
+            isMoveActionNotFinished, robotAction  = self:handleTurnRightMove(state, nextAction)
+        end
+
+        if isMoveActionNotFinished then
+            return robotAction
+        else
+            -- TODO
+        end
+    end,
+
+    handleCancelStraightMove = function (self, state, move)
+        self.distanceTravelled = self.distanceTravelled + state.wheels.distance_left
+        if self.distanceTravelled == 0 then
+            return false, nil
+        elseif move == MoveAction.GO_AHEAD then
+            return true, RobotAction:new{}
+        else
+            return true, RobotAction.goBack({1})
+        end
+    end,
+
+    handleCancelTurnLeftMove = function (self, state)
+        return self:handleTurnMove(
+            MoveAction.TURN_LEFT,
+            state,
+            state.wheels.velocity_left == -robot_parameters.robotNotTurningTyreSpeed
+              and state.wheels.velocity_right ~= 0
+        )
+    end,
+
+    handleCancelTurnRightMove = function (self, state)
+        return self:handleTurnMove(
+            MoveAction.TURN_RIGHT,
+            state,
+            state.wheels.velocity_right == -robot_parameters.robotNotTurningTyreSpeed
+              and state.wheels.velocity_left ~= 0
+        )
+    end,
+
+    handleCancelTurnMove = function (self, turnDirection, state, isRobotTurning)
+        if isRobotTurning and state.robotDirection.direction == self.oldDirection then
+            if nextAction ~= MoveAction.TURN_LEFT
+              and nextAction ~= MoveAction.TURN_RIGHT then
+                self.distanceTravelled = robot_parameters.squareSideDimension / 2
+                self.actions[1] = MoveAction.GO_AHEAD
+                return true, RobotAction:new({})
+            else
+                self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, turnDirection)
+                return false, nil
+            end
+        else
+            if turnDirection == MoveAction.TURN_LEFT then
+                return true, RobotAction:new({
+                    speed = {
+                        left = -robot_parameters.robotNotTurningTyreSpeed,
+                        right = -robot_parameters.robotTurningSpeed
+                    }
+                }, {1})
+            else
+                return true, RobotAction:new({
+                    speed = {
+                        left = -robot_parameters.robotTurningSpeed,
+                        right = -robot_parameters.robotNotTurningTyreSpeed
+                    }
+                }, {1})
             end
         end
     end,

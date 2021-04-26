@@ -81,8 +81,8 @@ CollisionAvoidance = {
     end,
 
     isObjectInFrontRange = function (proximityList)
-        return proximityList[1].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[2]
-            or proximityList[2].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[1]
+        return proximityList[2].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[1]
+            or proximityList[1].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[2]
             or proximityList[24].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[3]
             or proximityList[23].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[4]
     end,
@@ -103,6 +103,13 @@ CollisionAvoidance = {
             end
         end
         return false
+    end,
+
+    isObjectInBackRange = function (proximityList)
+        return proximityList[11].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[1]
+            or proximityList[12].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[2]
+            or proximityList[13].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[3]
+            or proximityList[14].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[4]
     end,
 
 }
