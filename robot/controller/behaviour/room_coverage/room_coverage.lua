@@ -94,13 +94,17 @@ RoomCoverage = {
                 isMoveActionNotFinished, robotAction = self:handleGoAheadMove(state, nextAction)
             end
         elseif currentAction == MoveAction.TURN_LEFT then
-            if CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity) then
+            if CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity)
+               or CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity)
+               or CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
                 self.state = State.OBSTACLE_ENCOUNTERED
             else
                 isMoveActionNotFinished, robotAction  = self:handleTurnLeftMove(state, nextAction)
             end
         elseif currentAction == MoveAction.TURN_RIGHT then
-            if CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity) then
+            if CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity)
+               or CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity)
+               or CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
                 self.state = State.OBSTACLE_ENCOUNTERED
             else
                 isMoveActionNotFinished, robotAction  = self:handleTurnRightMove(state, nextAction)
@@ -114,12 +118,12 @@ RoomCoverage = {
         end
 
         if self.state == State.OBSTACLE_ENCOUNTERED then
-            local nextPosition = MoveAction.nextPosition(
-                self.map.position,
+            local obstaclePosition = self:determineObstaclePosition(
+                state,
                 robot_utils.discreteDirection(state.robotDirection),
                 currentAction
             )
-            self.map:setCellAsDirty(nextPosition)
+            self.map:setCellAsDirty(obstaclePosition)
             return RobotAction:new{}
         elseif isMoveActionNotFinished then
             return robotAction
@@ -240,6 +244,32 @@ RoomCoverage = {
 
     --[[ --------- HANDLE OBSTACLE ---------- ]]
 
+    determineObstaclePosition = function (self, state, currentDirection, currentAction)
+
+        local isObstacleToTheLeft = CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity)
+        local isObstacleToTheRight = CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity)
+
+        if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK then
+            return MoveAction.nextPosition(
+                self.map.position,
+                currentDirection,
+                currentAction
+            )
+        elseif (currentAction == MoveAction.TURN_LEFT and isObstacleToTheLeft)
+           or (currentAction == MoveAction.TURN_RIGHT and isObstacleToTheRight)
+           or self.oldDirection ~= currentDirection then
+           return MoveAction.nextPosition(
+                self.map.position,
+                self.oldDirection,
+                currentAction
+            )
+        elseif (currentAction == MoveAction.TURN_LEFT and isObstacleToTheRight)
+          or (currentAction == MoveAction.TURN_RIGHT and isObstacleToTheLeft)
+          or currentDirection == self.oldDirection then
+            return self.map.position
+        end
+    end,
+
     handleObstacle = function (self, state)
         local currentAction = self.actions[1]
 
@@ -247,9 +277,9 @@ RoomCoverage = {
         if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK then
             isMoveActionNotFinished, robotAction = self:handleCancelVerticalMove(state, currentAction)
         elseif currentAction == MoveAction.TURN_LEFT then
-            isMoveActionNotFinished, robotAction  = self:handleTurnLeftMove(state, nextAction)
+            isMoveActionNotFinished, robotAction  = self:handleCancelTurnLeftMove(state)
         elseif currentAction == MoveAction.TURN_RIGHT then
-            isMoveActionNotFinished, robotAction  = self:handleTurnRightMove(state, nextAction)
+            isMoveActionNotFinished, robotAction  = self:handleCancelTurnRightMove(state)
         end
 
         if isMoveActionNotFinished then
@@ -271,7 +301,7 @@ RoomCoverage = {
     end,
 
     handleCancelTurnLeftMove = function (self, state)
-        return self:handleTurnMove(
+        return self:handleCancelTurnMove(
             MoveAction.TURN_LEFT,
             state,
             state.wheels.velocity_left == -robot_parameters.robotNotTurningTyreSpeed
@@ -280,7 +310,7 @@ RoomCoverage = {
     end,
 
     handleCancelTurnRightMove = function (self, state)
-        return self:handleTurnMove(
+        return self:handleCancelTurnMove(
             MoveAction.TURN_RIGHT,
             state,
             state.wheels.velocity_right == -robot_parameters.robotNotTurningTyreSpeed
@@ -290,15 +320,9 @@ RoomCoverage = {
 
     handleCancelTurnMove = function (self, turnDirection, state, isRobotTurning)
         if isRobotTurning and state.robotDirection.direction == self.oldDirection then
-            if nextAction ~= MoveAction.TURN_LEFT
-              and nextAction ~= MoveAction.TURN_RIGHT then
-                self.distanceTravelled = robot_parameters.squareSideDimension / 2
-                self.actions[1] = MoveAction.GO_AHEAD
-                return true, RobotAction:new({})
-            else
-                self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, turnDirection)
-                return false, nil
-            end
+            self.distanceTravelled = robot_parameters.squareSideDimension / 2
+            self.actions[1] = MoveAction.GO_AHEAD
+            return true, RobotAction.goBack({1})
         else
             if turnDirection == MoveAction.TURN_LEFT then
                 return true, RobotAction:new({
