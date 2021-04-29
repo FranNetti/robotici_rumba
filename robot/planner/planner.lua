@@ -60,7 +60,6 @@ Planner = {
                 end
             end
         end
-        commons.stringify(self.graph)
     end,
 
     removeFirstAction = function (self)
