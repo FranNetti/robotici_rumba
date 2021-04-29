@@ -1,5 +1,5 @@
-local MoveAction = require("robot.map.move_action")
-local ExcludeOption = require('robot.map.exclude_option')
+local MoveAction = require("robot.planner.move_action")
+local ExcludeOption = require('robot.planner.exclude_option')
 
 local Set = require('util.set')
 local commons = require('util.commons')

@@ -1,17 +1,16 @@
 local commons = require('util.commons')
-local robot_utils = require('robot.controller.behaviour.utils')
-local robot_parameters = require('robot.parameters')
-
 local Position = commons.Position
-local Direction = commons.Direction
 local Set = require('util.set')
-local ExcludeOption = require('robot.map.exclude_option')
-local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance')
 
+local robot_parameters = require('robot.parameters')
 local RobotAction = require('robot.commons').Action
-local MoveAction = require('robot.map.move_action')
+local MoveAction = require('robot.planner.move_action')
+local ExcludeOption = require('robot.planner.exclude_option')
+local Planner = require('robot.planner.planner')
 
+local robot_utils = require('robot.controller.behaviour.utils')
 local State = require('robot.controller.behaviour.room_coverage.state')
+local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance')
 
 RoomCoverage = {
 
@@ -22,7 +21,7 @@ RoomCoverage = {
         local o = {
             map = map,
             state = State.STAND_BY,
-            actions = nil,
+            planner = Planner:new(map.map),
             target = Position:new(21,21),
             distanceTravelled = 0,
             oldPosition = nil,
@@ -52,6 +51,7 @@ RoomCoverage = {
 
     standByPhase = function (self, state)
         self.target = Position:new(self.target.lat + 1, self.target.lng + 1)
+        self.planner:addNewDiagonalPoint(self.target.lat)
         self.map:addNewDiagonalPoint(self.target.lat)
 
         local excludedOptions = Set:new{}
@@ -61,13 +61,18 @@ RoomCoverage = {
 
         commons.print("[ROOM COVERAGE]")
         commons.print(
-            "(" .. self.map.encodeCoordinates(self.map.position.lat, self.map.position.lng) .. ") ["
+            "(" .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. ") ["
             .. robot_utils.discreteDirection(state.robotDirection).name ..  "] - ("
-            .. self.map.encodeCoordinates(self.target.lat, self.target.lng) .. ")"
+            .. self.planner.encodeCoordinatesFromPosition(self.target) .. ")"
         )
         commons.print("---------------")
 
-        self.actions = self.map:getActionsTo(self.target, robot_utils.discreteDirection(state.robotDirection), excludedOptions)
+        self.planner:getActionsTo(
+            self.map.position,
+            self.target,
+            robot_utils.discreteDirection(state.robotDirection),
+            excludedOptions
+        )
         self.state = State.EXPLORING
 
         --commons.printToConsole(self.map:toString())
@@ -79,10 +84,10 @@ RoomCoverage = {
 
     exploringPhase = function (self, state)
         self.oldState = self.state
-        local currentAction = self.actions[1]
+        local currentAction = self.planner.actions[1]
         local nextAction = nil
-        if #self.actions >= 2 then
-            nextAction = self.actions[2]
+        if #self.planner.actions >= 2 then
+            nextAction = self.planner.actions[2]
         end
 
         local isMoveActionNotFinished, robotAction = false, nil
@@ -123,16 +128,18 @@ RoomCoverage = {
                 currentAction
             )
             self.map:setCellAsObstacle(obstaclePosition)
-            commons.print('Position (' .. Map.encodeCoordinates(obstaclePosition.lat,obstaclePosition.lng) .. ") detected as obstacle!")
+            self.planner:setCellAsObstacle(obstaclePosition)
+            commons.print('Position (' .. self.planner.encodeCoordinatesFromPosition(obstaclePosition) .. ") detected as obstacle!")
             commons.print("----------------")
             return RobotAction:new{}
         elseif isMoveActionNotFinished then
             return robotAction
         else
             self.map:setCellAsClean(self.map.position)
+            self.planner:setCellAsClean(self.map.position)
             self.oldPosition = self.map.position
             self.oldDirection = robot_utils.discreteDirection(state.robotDirection)
-            table.remove(self.actions, 1)
+            self.planner:removeFirstAction()
 
             return self:exploringPhaseNextMove()
         end
@@ -181,7 +188,7 @@ RoomCoverage = {
             if nextAction ~= MoveAction.TURN_LEFT
               and nextAction ~= MoveAction.TURN_RIGHT then
                 self.distanceTravelled = robot_parameters.squareSideDimension / 2
-                self.actions[1] = MoveAction.GO_AHEAD
+                self.planner:changeAction(1, MoveAction.GO_AHEAD)
                 return true, RobotAction:new({})
             else
                 self.map.position = MoveAction.nextPosition(self.map.position, self.oldDirection, turnDirection)
@@ -195,7 +202,7 @@ RoomCoverage = {
             end
         else
             self.distanceTravelled = -robot_parameters.squareSideDimension / 2
-            table.insert(self.actions, 1, MoveAction.GO_BACK)
+            self.planner:addActionToHead(MoveAction.GO_BACK)
             self.map.position = MoveAction.nextPosition(self.map.position, robot_utils.discreteDirection(state.robotDirection), MoveAction.GO_AHEAD)
             return true, RobotAction.goBack({1})
         end
@@ -214,14 +221,14 @@ RoomCoverage = {
     end,
 
     exploringPhaseNextMove = function (self)
-        if #self.actions == 0 and self.state == State.EXPLORING then
+        if #self.planner.actions == 0 and self.state == State.EXPLORING then
             self.state = State.TARGET_REACHED
             return RobotAction.stayStill({1})
-        elseif #self.actions == 0 and self.state == State.GOING_HOME then
+        elseif #self.planner.actions == 0 and self.state == State.GOING_HOME then
             self.state = State.STAND_BY
             return RobotAction.stayStill({1})
         else
-            local nextMove = self.actions[1]
+            local nextMove = self.planner.actions[1]
             if nextMove == MoveAction.GO_AHEAD then
                 return RobotAction:new({})
             elseif nextMove == MoveAction.GO_BACK then
@@ -237,7 +244,7 @@ RoomCoverage = {
     --[[ ---------- TARGET REACHED --------- ]]
 
     targetReachedPhase = function (self, state)
-        self.actions = self.map:getActionsTo(Position:new(0,0), robot_utils.discreteDirection(state.robotDirection))
+        self.map:getActionsTo(self.map.position, Position:new(0,0), robot_utils.discreteDirection(state.robotDirection))
         self.state = State.GOING_HOME
         self.distanceTravelled = 0
         return RobotAction.stayStill({1})
@@ -272,7 +279,7 @@ RoomCoverage = {
     end,
 
     handleObstacle = function (self, state)
-        local currentAction = self.actions[1]
+        local currentAction = self.planner.actions[1]
 
         local isMoveActionNotFinished, robotAction = false, nil
         if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK then
@@ -287,16 +294,22 @@ RoomCoverage = {
             return robotAction
         else
             if self.oldState == State.EXPLORING then
-                self.actions = self.map:getActionsTo(self.target, robot_utils.discreteDirection(state.robotDirection))
+                self.planner:getActionsTo(
+                    self.map.position,
+                    self.target,
+                    robot_utils.discreteDirection(state.robotDirection)
+                )
 
-                if self.actions ~= nil and #self.actions > 0 then
+                if self.planner.actions ~= nil and #self.planner.actions > 0 then
                     self.map:addNewDiagonalPoint(self.target.lat + 1)
+                    self.planner:addNewDiagonalPoint(self.target.lat + 1)
                     self.state = State.EXPLORING
                     return RobotAction.stayStill({1})
                 else
-                    commons.print('Position (' .. Map.encodeCoordinates(self.target.lat,self.target.lng) .. ") is unreachable!")
+                    commons.print('Position (' .. self.planner.encodeCoordinatesFromPosition(self.target) .. ") is unreachable!")
                     commons.print("----------------")
                     self.map:setCellAsObstacle(self.target)
+                    self.planner:setCellAsObstacle(self.target)
                     self.state = State.TARGET_REACHED
                     return RobotAction.stayStill({1})
                 end
@@ -341,7 +354,7 @@ RoomCoverage = {
     handleCancelTurnMove = function (self, turnDirection, state, isRobotTurning)
         if isRobotTurning and state.robotDirection.direction == self.oldDirection then
             self.distanceTravelled = robot_parameters.squareSideDimension / 2
-            self.actions[1] = MoveAction.GO_AHEAD
+            self.planner:changeAction(1, MoveAction.GO_AHEAD)
             return true, RobotAction.goBack({1, 2})
         else
             if turnDirection == MoveAction.TURN_LEFT then
