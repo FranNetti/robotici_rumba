@@ -126,13 +126,13 @@ Map = {
 
     setCellAs = function (self, cellPosition, cellStatus)
         self.map[cellPosition.lat][cellPosition.lng] = cellStatus
-        local coordinates = Map.encodeCoordinates(cellPosition.lat, cellPosition.lng)
         if cellStatus == CellStatus.OBSTACLE then
+            local coordinates = Map.encodeCoordinates(cellPosition.lat, cellPosition.lng)
             self.graph:removeVertex(coordinates)
         end
     end,
 
-    setCellAsDiry = function (self, cellPosition)
+    setCellAsDirty = function (self, cellPosition)
         self:setCellAs(cellPosition, CellStatus.DIRTY)
     end,
 

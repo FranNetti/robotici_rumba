@@ -3,8 +3,8 @@ local commons = require('util.commons')
 
 local CLOSE_OBJECT_FRONT_DISTANCE_LIST = {
     0.75,
-    0.85,
-    0.85,
+    0.7,
+    0.7,
     0.75,
 };
 local CLOSE_OBJECT_HORIZONTAL_DISTANCE_LIST = {
@@ -13,6 +13,16 @@ local CLOSE_OBJECT_HORIZONTAL_DISTANCE_LIST = {
     0.85,
     0.85
 }
+
+local function printObstacleDetected(where, proximityList, indexStart, indexEnd, printMessage)
+    printMessage = printMessage or true
+    if printMessage then
+        commons.printToConsole("Obstacle detected " .. where .. "!") 
+    end
+    for i = indexStart, indexEnd do
+        commons.printToConsole("[" .. i .. "]" .. " - " .. proximityList[i].value)
+    end
+end
 
 CollisionAvoidance = {
 
@@ -24,53 +34,24 @@ CollisionAvoidance = {
     end,
 
     tick = function (self, state)
-        --[[ local isCloseToObject =
-            self.isObjectInFrontRange(state.proximity)
-            or self.isObjectInLeftRange(state.proximity)
-            or self.isObjectInRightRange(state.proximity)
-        if isCloseToObject then
-
-            commons.print("Obstacle encountered!!!")
-            for i = 1, #state.proximity do
-                commons.print("[" .. i .. "]" .. " - " .. state.proximity[i].value)
-            end
-            commons.print("----------------")
-
+        if self.isObjectInFrontRange(state.proximity) then
+            printObstacleDetected('in front', state.proximity, 1, 2)
+            printObstacleDetected('in front', state.proximity, 23, 24, false)
+            commons.printToConsole("----------------")
             return Action:new({
                 speed = {left = 0, right = 0},
                 leds = {switchedOn = true, color = commons.Color.YELLOW}
             }, {1})
-        end ]]
-
-        if self.isObjectInFrontRange(state.proximity) then
-            commons.print("Obstacle detected in front!")
-            for i = 1, 2 do
-                commons.print("[" .. i .. "]" .. " - " .. state.proximity[i].value)
-            end
-            for i = 23, 24 do
-                commons.print("[" .. i .. "]" .. " - " .. state.proximity[i].value)
-            end
-            commons.print("----------------")
-            --[[ return Action:new({
-                speed = {left = 0, right = 0},
-                leds = {switchedOn = true, color = commons.Color.YELLOW}
-            }, {1}) ]]
         elseif self.isObjectInLeftRange(state.proximity) then
-            commons.print("Obstacle detected to the left!")
-            for i = 3, 6 do
-                commons.print("[" .. i .. "]" .. " - " .. state.proximity[i].value)
-            end
-            commons.print("----------------")
+            printObstacleDetected('to the left', state.proximity, 3, 6)
+            commons.printToConsole("----------------")
             return Action:new({
                 speed = {left = 0, right = 0},
                 leds = {switchedOn = true, color = commons.Color.YELLOW}
             }, {1})
         elseif self.isObjectInRightRange(state.proximity) then
-                commons.print("Obstacle detected to the right!")
-            for i = 19, 22 do
-                commons.print("[" .. i .. "]" .. " - " .. state.proximity[i].value)
-            end
-            commons.print("----------------")
+            printObstacleDetected('to the right', state.proximity, 19, 22)
+            commons.printToConsole("----------------")
             return Action:new({
                 speed = {left = 0, right = 0},
                 leds = {switchedOn = true, color = commons.Color.YELLOW}

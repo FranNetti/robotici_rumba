@@ -23,11 +23,11 @@ RoomCoverage = {
             map = map,
             state = State.STAND_BY,
             actions = nil,
-            target = Position:new(0,0),
+            target = Position:new(21,21),
             distanceTravelled = 0,
             oldPosition = nil,
             oldDirection = nil,
-            oldAction = nil,
+            oldState = nil,
         }
         setmetatable(o, self)
         self.__index = self
@@ -70,8 +70,7 @@ RoomCoverage = {
         self.actions = self.map:getActionsTo(self.target, robot_utils.discreteDirection(state.robotDirection), excludedOptions)
         self.state = State.EXPLORING
 
-        commons.printToConsole(self.map:toString())
-
+        --commons.printToConsole(self.map:toString())
         self.distanceTravelled = 0
         return RobotAction.stayStill({1})
     end,
@@ -79,7 +78,7 @@ RoomCoverage = {
     --[[ --------- EXPLORING ---------- ]]
 
     exploringPhase = function (self, state)
-        self.distanceTravelled = self.distanceTravelled + state.wheels.distance_left
+        self.oldState = self.state
         local currentAction = self.actions[1]
         local nextAction = nil
         if #self.actions >= 2 then
@@ -123,14 +122,15 @@ RoomCoverage = {
                 robot_utils.discreteDirection(state.robotDirection),
                 currentAction
             )
-            self.map:setCellAsDirty(obstaclePosition)
+            self.map:setCellAsObstacle(obstaclePosition)
+            commons.print('Position (' .. Map.encodeCoordinates(obstaclePosition.lat,obstaclePosition.lng) .. ") detected as obstacle!")
+            commons.print("----------------")
             return RobotAction:new{}
         elseif isMoveActionNotFinished then
             return robotAction
         else
             self.map:setCellAsClean(self.map.position)
             self.oldPosition = self.map.position
-            self.oldAction = currentAction
             self.oldDirection = robot_utils.discreteDirection(state.robotDirection)
             table.remove(self.actions, 1)
 
@@ -139,6 +139,7 @@ RoomCoverage = {
     end,
 
     handleGoAheadMove = function (self, state, nextAction)
+        self.distanceTravelled = self.distanceTravelled + state.wheels.distance_left
         if (nextAction == MoveAction.TURN_LEFT or nextAction == MoveAction.TURN_RIGHT)
               and self.distanceTravelled < robot_parameters.squareSideDimension / 2 then
             return true, RobotAction:new({})
@@ -202,6 +203,7 @@ RoomCoverage = {
     end,
 
     handleGoBackMove = function (self, state)
+        self.distanceTravelled = self.distanceTravelled + state.wheels.distance_left
         if self.distanceTravelled > -robot_parameters.squareSideDimension then
             return true, RobotAction.goBack({1})
         else
@@ -236,7 +238,6 @@ RoomCoverage = {
 
     targetReachedPhase = function (self, state)
         self.actions = self.map:getActionsTo(Position:new(0,0), robot_utils.discreteDirection(state.robotDirection))
-
         self.state = State.GOING_HOME
         self.distanceTravelled = 0
         return RobotAction.stayStill({1})
@@ -275,7 +276,7 @@ RoomCoverage = {
 
         local isMoveActionNotFinished, robotAction = false, nil
         if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK then
-            isMoveActionNotFinished, robotAction = self:handleCancelVerticalMove(state, currentAction)
+            isMoveActionNotFinished, robotAction = self:handleCancelStraightMove(state, currentAction)
         elseif currentAction == MoveAction.TURN_LEFT then
             isMoveActionNotFinished, robotAction  = self:handleCancelTurnLeftMove(state)
         elseif currentAction == MoveAction.TURN_RIGHT then
@@ -285,18 +286,37 @@ RoomCoverage = {
         if isMoveActionNotFinished then
             return robotAction
         else
-            -- TODO
+            if self.oldState == State.EXPLORING then
+                self.actions = self.map:getActionsTo(self.target, robot_utils.discreteDirection(state.robotDirection))
+
+                if self.actions ~= nil and #self.actions > 0 then
+                    self.map:addNewDiagonalPoint(self.target.lat + 1)
+                    self.state = State.EXPLORING
+                    return RobotAction.stayStill({1})
+                else
+                    commons.print('Position (' .. Map.encodeCoordinates(self.target.lat,self.target.lng) .. ") is unreachable!")
+                    commons.print("----------------")
+                    self.map:setCellAsObstacle(self.target)
+                    self.state = State.TARGET_REACHED
+                    return RobotAction.stayStill({1})
+                end
+            elseif self.oldState == State.GOING_HOME then
+                self.state = State.TARGET_REACHED
+                return RobotAction.stayStill({1})
+            end
         end
     end,
 
     handleCancelStraightMove = function (self, state, move)
         self.distanceTravelled = self.distanceTravelled + state.wheels.distance_left
-        if self.distanceTravelled == 0 then
+        if move == MoveAction.GO_AHEAD and self.distanceTravelled <= 0 then
+            return false, nil
+        elseif move == MoveAction.GO_BACK and self.distanceTravelled >= 0 then
             return false, nil
         elseif move == MoveAction.GO_AHEAD then
-            return true, RobotAction:new{}
+            return true, RobotAction.goBack({1, 2})
         else
-            return true, RobotAction.goBack({1})
+            return true, RobotAction:new({}, {2})
         end
     end,
 
@@ -322,7 +342,7 @@ RoomCoverage = {
         if isRobotTurning and state.robotDirection.direction == self.oldDirection then
             self.distanceTravelled = robot_parameters.squareSideDimension / 2
             self.actions[1] = MoveAction.GO_AHEAD
-            return true, RobotAction.goBack({1})
+            return true, RobotAction.goBack({1, 2})
         else
             if turnDirection == MoveAction.TURN_LEFT then
                 return true, RobotAction:new({
@@ -330,14 +350,14 @@ RoomCoverage = {
                         left = -robot_parameters.robotNotTurningTyreSpeed,
                         right = -robot_parameters.robotTurningSpeed
                     }
-                }, {1})
+                }, {1, 2})
             else
                 return true, RobotAction:new({
                     speed = {
                         left = -robot_parameters.robotTurningSpeed,
                         right = -robot_parameters.robotNotTurningTyreSpeed
                     }
-                }, {1})
+                }, {1, 2})
             end
         end
     end,
