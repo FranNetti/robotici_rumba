@@ -58,13 +58,13 @@ RoomCoverage = {
             excludedOptions = excludedOptions + Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
         end
 
-        commons.print("[ROOM COVERAGE]")
+        --[[ commons.print("[ROOM COVERAGE]")
         commons.print(
             "(" .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. ") ["
             .. controller_utils.discreteDirection(state.robotDirection).name ..  "] - ("
             .. self.planner.encodeCoordinatesFromPosition(self.target) .. ")"
         )
-        commons.print("---------------")
+        commons.print("---------------") ]]
 
         self.moveExecutioner:setActions(self.planner:getActionsTo(
             self.map.position,
@@ -75,7 +75,6 @@ RoomCoverage = {
         self.state = State.EXPLORING
 
         --commons.printToConsole(self.map:toString())
-        self.moveExecutioner:resetDistanceTravelled()
         return RobotAction.stayStill({1})
     end,
 
@@ -84,11 +83,9 @@ RoomCoverage = {
     exploringPhase = function (self, state)
         self.oldState = self.state
         local currentAction = self.moveExecutioner.actions[1]
-        
-        local isObstacleEncountered, isMoveActionNotFinished, newPosition, robotAction =
-            self.moveExecutioner:doNextMove(state, self.map.position)
+        local result = self.moveExecutioner:doNextMove(state, self.map.position)
 
-        if isObstacleEncountered then
+        if result.isObstacleEncountered then
             self.state = State.OBSTACLE_ENCOUNTERED
             local obstaclePosition = self:determineObstaclePosition(
                 state,
@@ -97,16 +94,17 @@ RoomCoverage = {
             )
             self.map:setCellAsObstacle(obstaclePosition)
             self.planner:setCellAsObstacle(obstaclePosition)
+            commons.print(self.planner.encodeCoordinatesFromPosition(self.map.position))
             commons.print('Position (' .. self.planner.encodeCoordinatesFromPosition(obstaclePosition) .. ") detected as obstacle!")
-            commons.print("----------------")
+            --commons.print("----------------")
             return RobotAction:new{}
-        elseif isMoveActionNotFinished then
-            self.map.position = newPosition
-            return robotAction
+        elseif result.isMoveActionNotFinished then
+            self.map.position = result.position
+            return result.action
         else
-            self.map.position = newPosition
-            self.map:setCellAsClean(newPosition)
-            self.planner:setCellAsClean(newPosition)
+            self.map.position = result.position
+            self.map:setCellAsClean(result.position)
+            self.planner:setCellAsClean(result.position)
             self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
 
             return self:exploringPhaseNextMove()
@@ -138,10 +136,9 @@ RoomCoverage = {
 
     targetReachedPhase = function (self, state)
         self.moveExecutioner:setActions(
-            self.map:getActionsTo(self.map.position, Position:new(0,0), controller_utils.discreteDirection(state.robotDirection))
+            self.planner:getActionsTo(self.map.position, Position:new(0,0), controller_utils.discreteDirection(state.robotDirection))
         )
         self.state = State.GOING_HOME
-        self.moveExecutioner:resetDistanceTravelled()
         return RobotAction.stayStill({1})
     end,
 
@@ -175,11 +172,14 @@ RoomCoverage = {
 
     handleObstacle = function (self, state)
 
-        local isMoveActionNotFinished, robotAction = self.moveExecutioner:getAwayFromObstacle(state)
+        local result = self.moveExecutioner:getAwayFromObstacle(state, self.map.position)
 
-        if isMoveActionNotFinished then
-            return robotAction
+        if result.isMoveActionNotFinished then
+            return result.action
         else
+            commons.print(self.moveExecutioner.verticalDistanceTravelled .. "||" .. self.moveExecutioner.horizontalDistanceTravelled)
+            commons.print("------------")
+            self.map.position = result.position
             if self.oldState == State.EXPLORING then
                 self.moveExecutioner:setActions(
                     self.planner:getActionsTo(
@@ -195,8 +195,8 @@ RoomCoverage = {
                     self.state = State.EXPLORING
                     return RobotAction.stayStill({1})
                 else
-                    commons.print('Position (' .. self.planner.encodeCoordinatesFromPosition(self.target) .. ") is unreachable!")
-                    commons.print("----------------")
+                    --[[ commons.print('Position (' .. self.planner.encodeCoordinatesFromPosition(self.target) .. ") is unreachable!")
+                    commons.print("----------------") ]]
                     self.map:setCellAsObstacle(self.target)
                     self.planner:setCellAsObstacle(self.target)
                     self.state = State.TARGET_REACHED

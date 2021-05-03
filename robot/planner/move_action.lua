@@ -6,6 +6,7 @@ Action = {
     TURN_LEFT = "TURN LEFT",
     TURN_RIGHT = "TURN RIGHT",
     GO_BACK = "GO BACK",
+    GO_BACK_BEFORE_TURNING = "GO BACK BEFORE TURNING",
 
     nextPosition = function (currentPosition, direction, move)
         if move == Action.GO_AHEAD then
