@@ -122,7 +122,7 @@ RoomCoverage = {
             local nextMove = self.moveExecutioner.actions[1]
             if nextMove == MoveAction.GO_AHEAD then
                 return RobotAction:new({})
-            elseif nextMove == MoveAction.GO_BACK then
+            elseif nextMove == MoveAction.GO_BACK or nextMove == MoveAction.GO_BACK_BEFORE_TURNING then
                 return RobotAction.goBack({1})
             elseif nextMove == MoveAction.TURN_LEFT then
                 return RobotAction.turnLeft({1})
@@ -149,7 +149,7 @@ RoomCoverage = {
         local isObstacleToTheLeft = CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity)
         local isObstacleToTheRight = CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity)
 
-        if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK then
+        if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
             return MoveAction.nextPosition(
                 self.map.position,
                 currentDirection,

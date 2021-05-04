@@ -19,7 +19,7 @@ Action = {
             else
                 return Position:new(currentPosition.lat, currentPosition.lng - 1)
             end
-        elseif move == Action.GO_BACK then
+        elseif move == Action.GO_BACK or move == Action.GO_BACK_BEFORE_TURNING then
             if direction == Direction.NORTH then
                 return Position:new(currentPosition.lat - 1, currentPosition.lng)
             elseif direction == Direction.SOUTH then
@@ -53,7 +53,7 @@ Action = {
     end,
 
     nextDirection = function (direction, move)
-        if move == Action.GO_AHEAD or move == Action.GO_BACK then
+        if move == Action.GO_AHEAD or move == Action.GO_BACK or move == Action.GO_BACK_BEFORE_TURNING then
             return direction
         elseif  move == Action.TURN_LEFT then
             if direction == Direction.NORTH then
