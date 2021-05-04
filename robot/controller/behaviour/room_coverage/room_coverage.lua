@@ -2,6 +2,9 @@ local commons = require('util.commons')
 local Position = commons.Position
 local Set = require('util.set')
 
+local logger = require('util.logger')
+local LogLevel = logger.LogLevel
+
 local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.planner.move_action')
 local ExcludeOption = require('robot.planner.exclude_option')
@@ -42,7 +45,7 @@ RoomCoverage = {
         elseif self.state == State.OBSTACLE_ENCOUNTERED then
             return self:handleObstacle(roomState)
         else
-            commons.printToConsole(self.map:toString())
+            logger.printToConsole('Unknown state', LogLevel.WARNING)
         end
     end,
 
@@ -58,13 +61,13 @@ RoomCoverage = {
             excludedOptions = excludedOptions + Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
         end
 
-        --[[ commons.print("[ROOM COVERAGE]")
-        commons.print(
+        --[[ logger.print("[ROOM COVERAGE]")
+        logger.print(
             "(" .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. ") ["
             .. controller_utils.discreteDirection(state.robotDirection).name ..  "] - ("
             .. self.planner.encodeCoordinatesFromPosition(self.target) .. ")"
         )
-        commons.print("---------------") ]]
+        logger.print("---------------") ]]
 
         self.moveExecutioner:setActions(self.planner:getActionsTo(
             self.map.position,
@@ -74,7 +77,7 @@ RoomCoverage = {
         ))
         self.state = State.EXPLORING
 
-        --commons.printToConsole(self.map:toString())
+        logger.printToConsole(self.map:toString())
         return RobotAction.stayStill({1})
     end,
 
@@ -94,9 +97,9 @@ RoomCoverage = {
             )
             self.map:setCellAsObstacle(obstaclePosition)
             self.planner:setCellAsObstacle(obstaclePosition)
-            commons.print(self.planner.encodeCoordinatesFromPosition(self.map.position))
-            commons.print('Position (' .. self.planner.encodeCoordinatesFromPosition(obstaclePosition) .. ") detected as obstacle!")
-            --commons.print("----------------")
+            logger.print(self.planner.encodeCoordinatesFromPosition(self.map.position), LogLevel.INFO)
+            logger.print('Position (' .. self.planner.encodeCoordinatesFromPosition(obstaclePosition) .. ") detected as obstacle!", LogLevel.INFO)
+            logger.print("----------------", LogLevel.INFO)
             return RobotAction:new{}
         elseif result.isMoveActionNotFinished then
             self.map.position = result.position
@@ -177,8 +180,8 @@ RoomCoverage = {
         if result.isMoveActionNotFinished then
             return result.action
         else
-            commons.print(self.moveExecutioner.verticalDistanceTravelled .. "||" .. self.moveExecutioner.horizontalDistanceTravelled)
-            commons.print("------------")
+            logger.print(self.moveExecutioner.verticalDistanceTravelled .. "||" .. self.moveExecutioner.horizontalDistanceTravelled)
+            logger.print("------------")
             self.map.position = result.position
             if self.oldState == State.EXPLORING then
                 self.moveExecutioner:setActions(
@@ -195,8 +198,11 @@ RoomCoverage = {
                     self.state = State.EXPLORING
                     return RobotAction.stayStill({1})
                 else
-                    --[[ commons.print('Position (' .. self.planner.encodeCoordinatesFromPosition(self.target) .. ") is unreachable!")
-                    commons.print("----------------") ]]
+                    logger.print(
+                        'Position (' .. self.planner.encodeCoordinatesFromPosition(self.target) .. ") is unreachable from"
+                        .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. "!", LogLevel.WARNING
+                    )
+                    logger.print("----------------", LogLevel.INFO)
                     self.map:setCellAsObstacle(self.target)
                     self.planner:setCellAsObstacle(self.target)
                     self.state = State.TARGET_REACHED

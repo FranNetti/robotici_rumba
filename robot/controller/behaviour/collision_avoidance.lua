@@ -1,5 +1,6 @@
 local Action = require('robot.commons').Action
-local commons = require('util.commons')
+local Color = require('util.commons').Color
+local logger = require('util.logger')
 
 local CLOSE_OBJECT_FRONT_DISTANCE_LIST = {
     0.75,
@@ -17,10 +18,10 @@ local CLOSE_OBJECT_HORIZONTAL_DISTANCE_LIST = {
 local function printObstacleDetected(where, proximityList, indexStart, indexEnd, printMessage)
     printMessage = printMessage or true
     if printMessage then
-        commons.printToConsole("Obstacle detected " .. where .. "!") 
+        logger.printToConsole("Obstacle detected " .. where .. "!")
     end
     for i = indexStart, indexEnd do
-        commons.printToConsole("[" .. i .. "]" .. " - " .. proximityList[i].value)
+        logger.printToConsole("[" .. i .. "]" .. " - " .. proximityList[i].value)
     end
 end
 
@@ -37,24 +38,24 @@ CollisionAvoidance = {
         if self.isObjectInFrontRange(state.proximity) then
             printObstacleDetected('in front', state.proximity, 1, 2)
             printObstacleDetected('in front', state.proximity, 23, 24, false)
-            commons.printToConsole("----------------")
+            logger.printToConsole("----------------")
             return Action:new({
                 speed = {left = 0, right = 0},
-                leds = {switchedOn = true, color = commons.Color.YELLOW}
+                leds = {switchedOn = true, color = Color.YELLOW}
             }, {1})
         elseif self.isObjectInLeftRange(state.proximity) then
             printObstacleDetected('to the left', state.proximity, 3, 6)
-            commons.printToConsole("----------------")
+            logger.printToConsole("----------------")
             return Action:new({
                 speed = {left = 0, right = 0},
-                leds = {switchedOn = true, color = commons.Color.YELLOW}
+                leds = {switchedOn = true, color = Color.YELLOW}
             }, {1})
         elseif self.isObjectInRightRange(state.proximity) then
             printObstacleDetected('to the right', state.proximity, 19, 22)
-            commons.printToConsole("----------------")
+            logger.printToConsole("----------------")
             return Action:new({
                 speed = {left = 0, right = 0},
-                leds = {switchedOn = true, color = commons.Color.YELLOW}
+                leds = {switchedOn = true, color = Color.YELLOW}
             }, {1})
         end
 

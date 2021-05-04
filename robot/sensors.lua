@@ -10,20 +10,7 @@ local MAX_TEMPERATURE_CHANGE = 5
 local TEMPERATURE_INCREASE_PROBABILITY = 0.8
 local MAX_TEMPERATURE_IN_ROOM = 60;
 
--- compass sensors constants
-
-local UPPER_NORTH_BOUND_1 = 180.4;
-local LOWER_NORTH_BOUND_1 = 179.6;
-local UPPER_NORTH_BOUND_2 = -179.6;
-local LOWER_NORTH_BOUND_2 = -180.4;
-local UPPER_WEST_BOUND = -89.6;
-local LOWER_WEST_BOUND = -90.4;
-local UPPER_SOUTH_BOUND = 0.4;
-local LOWER_SOUTH_BOUND = -0.4;
-local UPPER_EAST_BOUND = 90.4;
-local LOWER_EAST_BOUND = 89.6;
-
-local commons = require 'util.commons'
+local commons = require('util.commons')
 local Direction = commons.Direction
 
 Sensors = {}

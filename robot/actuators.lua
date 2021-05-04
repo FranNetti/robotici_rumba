@@ -1,4 +1,5 @@
-local commons = require 'util.commons'
+local commons = require('util.commons')
+local logger = require('util.logger')
 
 Actuators = {}
 
@@ -22,7 +23,7 @@ Actuators.Brush = {
         local length = #self.areaList
         for i=1,length do
             if commons.positionInDirtArea(position, self.areaList[i]) then
-                commons.log("-- Rumba is cleaning --")
+                logger.print("-- Rumba is cleaning --", logger.LogLevel.INFO)
                 self.areaList[i].dirtQuantity = self.areaList[i].dirtQuantity - 1
                 if self.areaList[i].dirtQuantity == 0 then
                     table.remove(self.areaList, i)

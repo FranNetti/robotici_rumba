@@ -1,4 +1,4 @@
-local Direction = (require 'util/commons').Direction
+local Direction = (require 'util.commons').Direction
 
 return {
     robotInitialDirection = Direction.NORTH,

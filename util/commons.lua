@@ -92,18 +92,6 @@ Commons.positionInDirtArea = function (position, dirtArea)
         and position.lng >= dirtArea.bottomRight.lng
 end
 
-Commons.stringify = function (object)
-    require 'pl.pretty'.dump(object)
-end
-
-Commons.print = function (message)
-    log(message)
-end
-
-Commons.printToConsole = function (message)
-    print(message)
-end
-
 Commons.decreseNumberSortFunction = function(a, b) return b < a end
 
 return Commons;

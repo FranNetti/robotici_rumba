@@ -4,9 +4,11 @@ math.randomseed(1234)
 local sensors = require('robot.sensors')
 local actuators = require('robot.actuators')
 local commons = require('util.commons')
+local logger = require('util.logger')
 local RobotState = require('robot.commons').State
 local Map = require('robot.map.map')
 
+local Color, Position, DirtArea = commons.Color, commons.Position, commons.DirtArea
 local Subsumption = require('robot.controller.subsumption')
 local RobotAdvance = require('robot.controller.behaviour.robot_advance')
 local CollisionAvoidance = require('robot.controller.behaviour.collision_avoidance')
@@ -16,9 +18,9 @@ local INITIAL_ROOM_TEMPERATURE = 12;
 
 
 local dirt = {
-	commons.DirtArea:new(
-		commons.Position:new(0,0),
-		commons.Position:new(1, -1),
+	DirtArea:new(
+		Position:new(0,0),
+		Position:new(1, -1),
 		3
 	)
 }
@@ -33,7 +35,7 @@ local robotMap;
 
 local function setupWorkspace()
 	robot.wheels.set_velocity(0,0)
-	robot.leds.set_all_colors(commons.Color.BLACK)
+	robot.leds.set_all_colors(Color.BLACK)
 	-------
 	temperatureSensor = sensors.TemperatureSensor:new(INITIAL_ROOM_TEMPERATURE)
 	dirtDetector = sensors.DirtDetector:new(dirt)
@@ -47,7 +49,7 @@ local function setupWorkspace()
 		RoomCoverage:new(robotMap)
 	}
 	-------
-	commons.stringify(robot)
+	logger.stringify(robot)
 end
 
 
@@ -58,7 +60,7 @@ end
 
 function step()
 
-	local position = commons.Position:new(
+	local position = Position:new(
 		robot.positioning.position.x,
 		robot.positioning.position.y
 	)
@@ -76,7 +78,7 @@ function step()
 
 	if battery.percentage == 0 then
 		robot.wheels.set_velocity(0, 0)
-		robot.leds.set_all_colors(commons.Color.RED)
+		robot.leds.set_all_colors(Color.RED)
 	else
 
 		if action.speed ~= nil then
@@ -96,9 +98,9 @@ function step()
 		if action.leds ~= nil and action.leds.switchedOn then
 			robot.leds.set_all_colors(action.leds.color)
 		elseif battery.percentage < 5 then
-			robot.leds.set_all_colors(commons.Color.MAGENTA)
+			robot.leds.set_all_colors(Color.MAGENTA)
 		else
-			robot.leds.set_all_colors(commons.Color.BLACK)
+			robot.leds.set_all_colors(Color.BLACK)
 		end
 
 	end

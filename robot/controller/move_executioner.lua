@@ -1,5 +1,5 @@
-local commons = require('util.commons')
-local Direction = commons.Direction
+local Direction = require('util.commons').Direction
+local logger = require('util.logger')
 
 local robot_parameters = require('robot.parameters')
 local RobotAction = require('robot.commons').Action
@@ -145,9 +145,9 @@ local MoveExecutioner = {
                 }
             end
 
-            commons.print(self.verticalDistanceTravelled .. "||" .. self.horizontalDistanceTravelled)
+            logger.print(self.verticalDistanceTravelled .. "||" .. self.horizontalDistanceTravelled)
             if not result.isMoveActionNotFinished then
-                commons.print("------------")
+                logger.print("------------")
                 removeFirstAction(self)
                 self.oldDirection = currentDirection
             end
@@ -325,7 +325,7 @@ local MoveExecutioner = {
     ---}
     getAwayFromObstacle = function (self, state, currentPosition)
         local currentAction = self.actions[1]
-        commons.print(self.verticalDistanceTravelled .. "||" .. self.horizontalDistanceTravelled)
+        logger.print(self.verticalDistanceTravelled .. "||" .. self.horizontalDistanceTravelled)
         if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
             return self:handleCancelStraightMove(state, currentPosition, controller_utils.discreteDirection(state.robotDirection))
         elseif currentAction == MoveAction.TURN_LEFT then
