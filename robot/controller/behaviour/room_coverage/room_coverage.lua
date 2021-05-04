@@ -61,13 +61,13 @@ RoomCoverage = {
             excludedOptions = excludedOptions + Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
         end
 
-        --[[ logger.print("[ROOM COVERAGE]")
+        logger.print("[ROOM COVERAGE]")
         logger.print(
             "(" .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. ") ["
             .. controller_utils.discreteDirection(state.robotDirection).name ..  "] - ("
             .. self.planner.encodeCoordinatesFromPosition(self.target) .. ")"
         )
-        logger.print("---------------") ]]
+        logger.print("---------------")
 
         self.moveExecutioner:setActions(self.planner:getActionsTo(
             self.map.position,
@@ -98,8 +98,8 @@ RoomCoverage = {
             self.map:setCellAsObstacle(obstaclePosition)
             self.planner:setCellAsObstacle(obstaclePosition)
             logger.print(self.planner.encodeCoordinatesFromPosition(self.map.position), LogLevel.INFO)
-            logger.print('Position (' .. self.planner.encodeCoordinatesFromPosition(obstaclePosition) .. ") detected as obstacle!", LogLevel.INFO)
-            logger.print("----------------", LogLevel.INFO)
+            logger.print('Position (' .. self.planner.encodeCoordinatesFromPosition(obstaclePosition) .. ") detected as obstacle!", LogLevel.WARNING)
+            logger.print("----------------", LogLevel.WARNING)
             return RobotAction:new{}
         elseif result.isMoveActionNotFinished then
             self.map.position = result.position
@@ -148,7 +148,6 @@ RoomCoverage = {
     --[[ --------- HANDLE OBSTACLE ---------- ]]
 
     determineObstaclePosition = function (self, state, currentDirection, currentAction)
-
         local isObstacleToTheLeft = CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity)
         local isObstacleToTheRight = CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity)
 
@@ -174,15 +173,13 @@ RoomCoverage = {
     end,
 
     handleObstacle = function (self, state)
-
-        local result = self.moveExecutioner:getAwayFromObstacle(state, self.map.position)
+        local result = self.moveExecutioner:getAwayFromObstacle(state)
 
         if result.isMoveActionNotFinished then
             return result.action
         else
             logger.print(self.moveExecutioner.verticalDistanceTravelled .. "||" .. self.moveExecutioner.horizontalDistanceTravelled)
             logger.print("------------")
-            self.map.position = result.position
             if self.oldState == State.EXPLORING then
                 self.moveExecutioner:setActions(
                     self.planner:getActionsTo(
@@ -200,7 +197,8 @@ RoomCoverage = {
                 else
                     logger.print(
                         'Position (' .. self.planner.encodeCoordinatesFromPosition(self.target) .. ") is unreachable from"
-                        .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. "!", LogLevel.WARNING
+                        .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. "!",
+                        LogLevel.WARNING
                     )
                     logger.print("----------------", LogLevel.INFO)
                     self.map:setCellAsObstacle(self.target)

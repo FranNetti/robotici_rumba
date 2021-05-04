@@ -14,7 +14,8 @@ local RobotAdvance = require('robot.controller.behaviour.robot_advance')
 local CollisionAvoidance = require('robot.controller.behaviour.collision_avoidance')
 local RoomCoverage = require('robot.controller.behaviour.room_coverage.room_coverage')
 
-local INITIAL_ROOM_TEMPERATURE = 12;
+local INITIAL_ROOM_TEMPERATURE = 12
+logger.level = logger.LogLevel.INFO
 
 
 local dirt = {
@@ -25,13 +26,13 @@ local dirt = {
 	)
 }
 
-local temperatureSensor;
-local dirtDetector;
-local battery;
-local compass;
-local brush;
-local robotController;
-local robotMap;
+local temperatureSensor
+local dirtDetector
+local battery
+local compass
+local brush
+local robotController
+local robotMap
 
 local function setupWorkspace()
 	robot.wheels.set_velocity(0,0)

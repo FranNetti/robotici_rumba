@@ -166,6 +166,11 @@ local MoveExecutioner = {
     handleGoAheadMove = function (self, state, currentPosition, currentDirection, nextAction)
         updateDistanceTravelled(self, currentDirection, state.wheels.distance_left)
         local distanceTravelled = getDistanceTravelled(self, currentDirection)
+        --[[
+            if the robot has to turn immediately after then he needs to stop only
+            when he reaches the middle of the square.
+            on the contrary he needs to reach the end of the square.
+        ]]
         if (nextAction == MoveAction.TURN_LEFT or nextAction == MoveAction.TURN_RIGHT)
           and distanceTravelled < robot_parameters.squareSideDimension / 2 then
             return {
@@ -183,7 +188,11 @@ local MoveExecutioner = {
             }
         end
 
-        -- in any case the robot advanced by a cell so it's important to subtract a cell full dimension
+        --[[
+            if the robot has to turn immediately after he is half square behind the next cell so
+            it's important to subtract a full cell dimension.
+            in the other case the robot has travelled a full cell dimension so we do the same.
+        ]]
         updateDistanceTravelled(self, currentDirection, -robot_parameters.squareSideDimension)
         return {
             isMoveActionNotFinished = false,
@@ -223,6 +232,15 @@ local MoveExecutioner = {
         local nextDirection = MoveAction.nextDirection(self.oldDirection, turnDirection)
 
         if isRobotTurning and state.robotDirection.direction == nextDirection then
+            --[[
+                if the robot has finished to turn then it is ok in regards to the old direction because he is
+                advanced by another half of the cell.
+                for the current direction is now ahead of half cell with reguards to the current cell if the robot has not to
+                turn again, after he needs to end the turn operation by advancing of half cell. In this way the robot knows only that
+                he turned direction but it stayed in the same cell.
+                if the robot has to turn again instead it knows that it changed cell and now it is behind of half cell with regards 
+                to the new cell.
+            ]]
             updateDistanceTravelled(self, self.oldDirection, robot_parameters.squareSideDimension / 2)
             if nextAction ~= MoveAction.TURN_LEFT
               and nextAction ~= MoveAction.TURN_RIGHT then
@@ -255,6 +273,10 @@ local MoveExecutioner = {
                 }
             end
         else
+            --[[
+                if the robot has to turn but he's not doing anything it's important
+                that it goes back by a half of the cell dimension
+            ]]
             addActionToHead(self, MoveAction.GO_BACK_BEFORE_TURNING)
             return {
                 isMoveActionNotFinished = true,
@@ -281,6 +303,10 @@ local MoveExecutioner = {
             currentDirection,
             MoveAction.GO_BACK
         )
+        --[[
+            if the robot has to turn then it's important that it goes back
+            by half cell to then correctly turn
+        ]]
         if nextAction == MoveAction.TURN_LEFT
           or nextAction == MoveAction.TURN_RIGHT then
             changeAction(self, 1, MoveAction.GO_BACK_BEFORE_TURNING)
@@ -317,38 +343,30 @@ local MoveExecutioner = {
 
     ---perform actions to get away from an obstacle
     ---@param state table RobotState - the current environment state
-    ---@param currentPosition table Position - the current robot position
     ---@return table {
     ---     boolean isMoveActionNotFinished - if the robot completed an action
-    ---     Position position - the current robot position
     ---     RobotAction action - the action to perform
     ---}
-    getAwayFromObstacle = function (self, state, currentPosition)
+    getAwayFromObstacle = function (self, state)
         local currentAction = self.actions[1]
         logger.print(self.verticalDistanceTravelled .. "||" .. self.horizontalDistanceTravelled)
         if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
-            return self:handleCancelStraightMove(state, currentPosition, controller_utils.discreteDirection(state.robotDirection))
+            return self:handleCancelStraightMove(state, controller_utils.discreteDirection(state.robotDirection))
         elseif currentAction == MoveAction.TURN_LEFT then
-            return self:handleCancelTurnLeftMove(state, currentPosition)
+            return self:handleCancelTurnLeftMove(state)
         else
-            return self:handleCancelTurnRightMove(state, currentPosition)
+            return self:handleCancelTurnRightMove(state)
         end
     end,
 
-    handleCancelStraightMove = function (self, state, currentPosition, currentDirection)
+    handleCancelStraightMove = function (self, state, currentDirection)
         updateDistanceTravelled(self, currentDirection, state.wheels.distance_left)
         local distanceTravelled = getDistanceTravelled(self, currentDirection)
         local move = self.actions[1]
         if move == MoveAction.GO_AHEAD and distanceTravelled <= 0 then
-            return {
-                isMoveActionNotFinished = false,
-                position = currentPosition
-            }
+            return { isMoveActionNotFinished = false }
         elseif (move == MoveAction.GO_BACK or move == MoveAction.GO_BACK_BEFORE_TURNING) and distanceTravelled >= 0 then
-            return {
-                isMoveActionNotFinished = false,
-                position = currentPosition
-            }
+            return { isMoveActionNotFinished = false }
         elseif move == MoveAction.GO_AHEAD then
             return {
                 isMoveActionNotFinished = true,
@@ -362,32 +380,27 @@ local MoveExecutioner = {
         end
     end,
 
-    handleCancelTurnLeftMove = function (self, state, currentPosition)
+    handleCancelTurnLeftMove = function (self, state)
         return self:handleCancelTurnMove(
             MoveAction.TURN_LEFT,
             state,
-            currentPosition,
             state.wheels.velocity_left == -robot_parameters.robotNotTurningTyreSpeed
               and state.wheels.velocity_right ~= 0
         )
     end,
 
-    handleCancelTurnRightMove = function (self, state, currentPosition)
+    handleCancelTurnRightMove = function (self, state)
         return self:handleCancelTurnMove(
             MoveAction.TURN_RIGHT,
             state,
-            currentPosition,
             state.wheels.velocity_right == -robot_parameters.robotNotTurningTyreSpeed
               and state.wheels.velocity_left ~= 0
         )
     end,
 
-    handleCancelTurnMove = function (self, turnDirection, state, currentPosition, isRobotTurning)
+    handleCancelTurnMove = function (self, turnDirection, state, isRobotTurning)
         if isRobotTurning and state.robotDirection.direction == self.oldDirection then
-            return {
-                isMoveActionNotFinished = false,
-                position = currentPosition
-            }
+            return { isMoveActionNotFinished = false }
         else
             if turnDirection == MoveAction.TURN_LEFT then
                 return {
@@ -397,8 +410,7 @@ local MoveExecutioner = {
                             left = -robot_parameters.robotNotTurningTyreSpeed,
                             right = -robot_parameters.robotTurningSpeed
                         }
-                    }, {1, 2}),
-                    position = currentPosition
+                    }, {1, 2})
                 }
             else
                 return {
@@ -408,8 +420,7 @@ local MoveExecutioner = {
                             left = -robot_parameters.robotTurningSpeed,
                             right = -robot_parameters.robotNotTurningTyreSpeed
                         }
-                    }, {1, 2}),
-                    position = currentPosition
+                    }, {1, 2})
                 }
             end
         end
