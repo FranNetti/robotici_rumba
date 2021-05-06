@@ -1,4 +1,4 @@
-local commons = require('util.commons')
+local cell_status = require('robot.map.cell_status')
 
 local luaList = require('luagraphs.data.list')
 local luaGraph = require('extensions.luagraphs.data.graph')
@@ -27,13 +27,21 @@ Planner = {
     addNewDiagonalPoint = function(self, depth)
         local currentDepth = #self.map
         local depthDifference = depth - currentDepth + 1
+        self.graph:addVertexIfNotExists(self.encodeCoordinates(depth, depth))
         if depthDifference > 0 then
             for i = 0, currentDepth do
                 for j = currentDepth + 1, depth do
-                    self.graph:addEdge(
-                        self.encodeCoordinates(i, j - 1),
-                        self.encodeCoordinates(i, j)
-                    )
+                    local cell = self.map[i][j-1]
+                    --[[
+                        link the new cell only if the one to the right isn't an
+                        obstacle nor exists
+                    ]]
+                    if cell == nil or cell ~= cell_status.OBSTACLE then
+                        self.graph:addEdge(
+                            self.encodeCoordinates(i, j - 1),
+                            self.encodeCoordinates(i, j)
+                        )
+                    end
                     self.graph:addEdge(
                         self.encodeCoordinates(i, j),
                         self.encodeCoordinates(i + 1, j)
@@ -42,11 +50,20 @@ Planner = {
             end
 
             for i= currentDepth + 1, depth do
-                self.graph:addEdge(
-                    self.encodeCoordinates(i - 1, 0),
-                    self.encodeCoordinates(i, 0)
-                )
+                local isFirstRow = i == currentDepth + 1
+                if not isFirstRow or self.map[i - 1][0] ~= cell_status.OBSTACLE then
+                    self.graph:addEdge(
+                        self.encodeCoordinates(i - 1, 0),
+                        self.encodeCoordinates(i, 0)
+                    )
+                end
                 for j = 1, depth do
+                    if i ~= j and isFirstRow and self.map[i - 1][j] ~= cell_status.OBSTACLE then
+                        self.graph:addEdge(
+                            self.encodeCoordinates(i - 1, j),
+                            self.encodeCoordinates(i, j)
+                        )
+                    end
                     self.graph:addEdge(
                         self.encodeCoordinates(i, j - 1),
                         self.encodeCoordinates(i, j)

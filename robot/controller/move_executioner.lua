@@ -76,7 +76,7 @@ local MoveExecutioner = {
     end,
 
     hasNoMoreActions = function (self)
-        return self.actions ~= nil and #self.actions <= 0
+        return self.actions == nil or #self.actions <= 0
     end,
 
     resetDistanceTravelled = function (self)

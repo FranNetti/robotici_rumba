@@ -13,66 +13,68 @@ function helper.determineActions(path, direction, coordinatesDecoder)
     local actions = {}
     local currentDirection = direction
 
-    for i = 2, #path do
-        local newLat, newLng = coordinatesDecoder(path[i])
-        local oldLat, oldLng = coordinatesDecoder(path[i - 1])
+    if path ~= nil then
+        for i = 2, #path do
+            local newLat, newLng = coordinatesDecoder(path[i])
+            local oldLat, oldLng = coordinatesDecoder(path[i - 1])
 
-        if oldLat == newLat and oldLng < newLng then
+            if oldLat == newLat and oldLng < newLng then
 
-            if currentDirection == Direction.NORTH then
-                table.insert(actions, MoveAction.TURN_LEFT)
-                currentDirection = Direction.WEST
-            elseif currentDirection == Direction.EAST then
-                table.insert(actions, MoveAction.GO_BACK)
-            elseif currentDirection == Direction.SOUTH then
-                table.insert(actions, MoveAction.TURN_RIGHT)
-                currentDirection = Direction.WEST
-            else
-                table.insert(actions, MoveAction.GO_AHEAD)
+                if currentDirection == Direction.NORTH then
+                    table.insert(actions, MoveAction.TURN_LEFT)
+                    currentDirection = Direction.WEST
+                elseif currentDirection == Direction.EAST then
+                    table.insert(actions, MoveAction.GO_BACK)
+                elseif currentDirection == Direction.SOUTH then
+                    table.insert(actions, MoveAction.TURN_RIGHT)
+                    currentDirection = Direction.WEST
+                else
+                    table.insert(actions, MoveAction.GO_AHEAD)
+                end
+
+            elseif oldLat == newLat and oldLng > newLng then
+
+                if currentDirection == Direction.NORTH then
+                    table.insert(actions, MoveAction.TURN_RIGHT)
+                    currentDirection = Direction.EAST
+                elseif currentDirection == Direction.EAST then
+                    table.insert(actions, MoveAction.GO_AHEAD)
+                elseif currentDirection == Direction.SOUTH then
+                    table.insert(actions, MoveAction.TURN_LEFT)
+                    currentDirection = Direction.EAST
+                else
+                    table.insert(actions, MoveAction.GO_BACK)
+                end
+
+            elseif oldLng == newLng and oldLat < newLat then
+
+                if currentDirection == Direction.NORTH then
+                    table.insert(actions, MoveAction.GO_AHEAD)
+                elseif currentDirection == Direction.EAST then
+                    table.insert(actions, MoveAction.TURN_LEFT)
+                    currentDirection = Direction.NORTH
+                elseif currentDirection == Direction.SOUTH then
+                    table.insert(actions, MoveAction.GO_BACK)
+                else
+                    table.insert(actions, MoveAction.TURN_RIGHT)
+                    currentDirection = Direction.NORTH
+                end
+
+            elseif oldLng == newLng and oldLat > newLat then
+
+                if currentDirection == Direction.NORTH then
+                    table.insert(actions, MoveAction.GO_BACK)
+                elseif currentDirection == Direction.EAST then
+                    table.insert(actions, MoveAction.TURN_RIGHT)
+                    currentDirection = Direction.SOUTH
+                elseif currentDirection == Direction.SOUTH then
+                    table.insert(actions, MoveAction.GO_AHEAD)
+                else
+                    table.insert(actions, MoveAction.TURN_LEFT)
+                    currentDirection = Direction.SOUTH
+                end
+
             end
-
-        elseif oldLat == newLat and oldLng > newLng then
-
-            if currentDirection == Direction.NORTH then
-                table.insert(actions, MoveAction.TURN_RIGHT)
-                currentDirection = Direction.EAST
-            elseif currentDirection == Direction.EAST then
-                table.insert(actions, MoveAction.GO_AHEAD)
-            elseif currentDirection == Direction.SOUTH then
-                table.insert(actions, MoveAction.TURN_LEFT)
-                currentDirection = Direction.EAST
-            else
-                table.insert(actions, MoveAction.GO_BACK)
-            end
-
-        elseif oldLng == newLng and oldLat < newLat then
-
-            if currentDirection == Direction.NORTH then
-                table.insert(actions, MoveAction.GO_AHEAD)
-            elseif currentDirection == Direction.EAST then
-                table.insert(actions, MoveAction.TURN_LEFT)
-                currentDirection = Direction.NORTH
-            elseif currentDirection == Direction.SOUTH then
-                table.insert(actions, MoveAction.GO_BACK)
-            else
-                table.insert(actions, MoveAction.TURN_RIGHT)
-                currentDirection = Direction.NORTH
-            end
-
-        elseif oldLng == newLng and oldLat > newLat then
-
-            if currentDirection == Direction.NORTH then
-                table.insert(actions, MoveAction.GO_BACK)
-            elseif currentDirection == Direction.EAST then
-                table.insert(actions, MoveAction.TURN_RIGHT)
-                currentDirection = Direction.SOUTH
-            elseif currentDirection == Direction.SOUTH then
-                table.insert(actions, MoveAction.GO_AHEAD)
-            else
-                table.insert(actions, MoveAction.TURN_LEFT)
-                currentDirection = Direction.SOUTH
-            end
-
         end
     end
     return actions

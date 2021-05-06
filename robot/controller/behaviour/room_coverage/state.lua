@@ -9,6 +9,8 @@ State = {
     GOING_HOME = "GOING HOME",
     -- obstacle encountered during any phase of the robot movement
     OBSTACLE_ENCOUNTERED = "OBSTACLE ENCOUNTERED",
+    ---perimeter identified but not finished to explore yet
+    PERIMETER_IDENTIFIED = "PERIMETER IDENTIFIED",
     ---room explored
     EXPLORED = "EXPLORED",
 }
