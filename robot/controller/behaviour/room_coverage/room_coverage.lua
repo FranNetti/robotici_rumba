@@ -107,16 +107,12 @@ RoomCoverage = {
 
     followPlan = function (self, state)
         self.oldState = self.state
-        local currentAction = self.moveExecutioner.actions[1]
         local result = self.moveExecutioner:doNextMove(state, self.map.position)
 
         if result.isObstacleEncountered then
             self.state = State.OBSTACLE_ENCOUNTERED
-            local obstaclePosition = self:determineObstaclePosition(
-                state,
-                controller_utils.discreteDirection(state.robotDirection),
-                currentAction
-            )
+            local obstaclePosition = result.obstaclePosition
+            self.map.position = result.position
             self.map:setCellAsObstacle(obstaclePosition)
             self.planner:setCellAsObstacle(obstaclePosition)
             logger.print("[ROOM COVERAGE]")
@@ -174,31 +170,6 @@ RoomCoverage = {
     end,
 
     --[[ --------- HANDLE OBSTACLE ---------- ]]
-
-    determineObstaclePosition = function (self, state, currentDirection, currentAction)
-        local isObstacleToTheLeft = CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity)
-        local isObstacleToTheRight = CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity)
-
-        if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
-            return MoveAction.nextPosition(
-                self.map.position,
-                currentDirection,
-                currentAction
-            )
-        elseif (currentAction == MoveAction.TURN_LEFT and isObstacleToTheLeft)
-           or (currentAction == MoveAction.TURN_RIGHT and isObstacleToTheRight)
-           or self.oldDirection ~= currentDirection then
-           return MoveAction.nextPosition(
-                self.map.position,
-                self.oldDirection,
-                currentAction
-            )
-        elseif (currentAction == MoveAction.TURN_LEFT and isObstacleToTheRight)
-          or (currentAction == MoveAction.TURN_RIGHT and isObstacleToTheLeft)
-          or currentDirection == self.oldDirection then
-            return self.map.position
-        end
-    end,
 
     handleObstacle = function (self, state)
         local result = self.moveExecutioner:getAwayFromObstacle(state)
