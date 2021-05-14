@@ -111,25 +111,26 @@ RoomCoverage = {
 
         if result.isObstacleEncountered then
             self.state = State.OBSTACLE_ENCOUNTERED
-            local obstaclePosition = result.obstaclePosition
             self.map.position = result.position
-            self.map:setCellAsObstacle(obstaclePosition)
-            self.planner:setCellAsObstacle(obstaclePosition)
+
             logger.print("[ROOM COVERAGE]")
             logger.print(self.planner.encodeCoordinatesFromPosition(self.map.position), LogLevel.INFO)
-            logger.print('Position (' .. self.planner.encodeCoordinatesFromPosition(obstaclePosition) .. ") detected as obstacle!", LogLevel.WARNING)
+            logger.print('Position (' .. self.planner.encodeCoordinatesFromPosition(result.obstaclePosition) .. ") detected as obstacle!", LogLevel.WARNING)
             logger.print("----------------", LogLevel.WARNING)
+
+            self.map:setCellAsObstacle(result.obstaclePosition)
+            self.planner:setCellAsObstacle(result.obstaclePosition)
             return RobotAction:new{}
-        elseif result.isMoveActionNotFinished then
-            self.map.position = result.position
-            return result.action
-        else
+        elseif result.isMoveActionFinished then
             self.map.position = result.position
             self.map:setCellAsClean(result.position)
             self.planner:setCellAsClean(result.position)
             self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
 
             return self:followPlanNextMove()
+        else
+            self.map.position = result.position
+            return result.action
         end
     end,
 
@@ -172,11 +173,10 @@ RoomCoverage = {
     --[[ --------- HANDLE OBSTACLE ---------- ]]
 
     handleObstacle = function (self, state)
-        local result = self.moveExecutioner:getAwayFromObstacle(state)
+        local result = self.moveExecutioner:getAwayFromObstacle(state, self.map.position)
 
-        if result.isMoveActionNotFinished then
-            return result.action
-        else
+        if result.isMoveActionFinished then
+            self.map.position = result.position
             if self.oldState == State.EXPLORING then
                 self.map:addNewDiagonalPoint(self.target.lat + 1)
                 self.planner:addNewDiagonalPoint(self.target.lat + 1)
@@ -209,6 +209,8 @@ RoomCoverage = {
                 self.state = State.TARGET_REACHED
                 return RobotAction.stayStill({1})
             end
+        else
+            return result.action
         end
     end,
 
