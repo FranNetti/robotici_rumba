@@ -94,8 +94,8 @@ function helper.determinePositionsToExclude(excludeOptions, currentPosition, cur
                 elseif opt == ExcludeOption.EXCLUDE_RIGHT and currentPosition.lng ~= 0 then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
                 end
-            elseif currentDirection == Direction.SOUTH and currentPosition.lat ~= 0 then
-                if opt == ExcludeOption.EXCLUDE_FRONT then
+            elseif currentDirection == Direction.SOUTH then
+                if opt == ExcludeOption.EXCLUDE_FRONT and currentPosition.lat ~= 0 then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
                 elseif opt == ExcludeOption.EXCLUDE_BACK then
                     positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))

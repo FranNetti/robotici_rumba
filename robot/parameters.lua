@@ -2,10 +2,11 @@ local Direction = (require 'util.commons').Direction
 
 return {
     robotInitialDirection = Direction.NORTH,
-    squareSideDimension = 18,
+    squareSideDimension = 12,
     robotForwardSpeed = 10,
     robotReverseSpeed = -5,
     robotTurningSpeed = 5,
     robotNotTurningTyreSpeed = 0,
     robotAdjustAngleSpeed = 9,
+    distanceToGoBackWhenHome = 1.5
 }

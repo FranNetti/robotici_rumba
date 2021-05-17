@@ -16,7 +16,7 @@ Map = {
 
     addNewDiagonalPoint = function(self, depth)
         local currentDepth = #self.map
-        local depthDifference = depth - currentDepth + 1
+        local depthDifference = depth - currentDepth
         if depthDifference > 0 then
             for i = 0, currentDepth do
                 for j = currentDepth + 1, depth do
@@ -38,7 +38,9 @@ Map = {
     end,
 
     setCellAs = function (self, cellPosition, cellStatus)
-        self.map[cellPosition.lat][cellPosition.lng] = cellStatus
+        if cellPosition.lat >= 0 and cellPosition.lng >= 0 then
+            self.map[cellPosition.lat][cellPosition.lng] = cellStatus
+        end
     end,
 
     setCellAsDirty = function (self, cellPosition)

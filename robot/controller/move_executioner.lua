@@ -1,4 +1,5 @@
 local Direction = require('util.commons').Direction
+local Position = require('util.commons').Position
 local logger = require('util.logger')
 
 local robot_parameters = require('robot.parameters')
@@ -8,6 +9,9 @@ local MoveAction = require('robot.planner.move_action')
 
 local controller_utils = require('robot.controller.utils')
 local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance')
+
+local LEFT_DISTANCE_WHILE_GOING_STRAIGHT = 0.95
+local RIGHT_DISTANCE_WHILE_GOING_STRAIGHT = 0.95
 
 local function removeFirstAction(moveExecutioner)
     if moveExecutioner.actions ~= nil and #moveExecutioner.actions >= 1 then
@@ -37,10 +41,36 @@ local function updateDistanceTravelled(moveExecutioner, currentDirection, offset
     end
 end
 
+local function setDistanceTravelled(moveExecutioner, currentDirection, value)
+    if currentDirection == Direction.SOUTH or currentDirection == Direction.NORTH then
+        moveExecutioner.verticalDistanceTravelled = value
+    else
+        moveExecutioner.horizontalDistanceTravelled = value
+    end
+end
+
 local function isObstacleInTheSameCell(isObstacleToX, currentDirection, currentAction, oldDirection)
     return currentDirection == oldDirection
         or currentAction == MoveAction.TURN_LEFT and isObstacleToX.right
         or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.left
+end
+
+local function isObstacleCloseToTheLeft(state)
+    for i=3,6 do
+        if state.proximity[i].value > LEFT_DISTANCE_WHILE_GOING_STRAIGHT then
+            return true
+        end
+    end
+    return false
+end
+
+local function isObstacleCloseToTheRight(state)
+    for i=19, 22 do
+        if state.proximity[i].value > RIGHT_DISTANCE_WHILE_GOING_STRAIGHT then
+            return true
+        end
+    end
+    return false
 end
 
 local function getDistanceTravelled(moveExecutioner, currentDirection)
@@ -82,7 +112,6 @@ local function updateStraightDistanceTravelled(moveExecutioner, state, currentDi
     else
         updateDistanceTravelled(moveExecutioner, currentDirection, state.wheels.distance_right)
     end
-    -- updateDistanceTravelled(moveExecutioner, currentDirection, state.wheels.distance_left)
 end
 
 local MoveExecutioner = {
@@ -111,7 +140,7 @@ local MoveExecutioner = {
     ---@param state table RobotState - the current environment state
     ---@return table {
     ---     boolean isObstacleEncountered - if there is an obstacle in the way
-    ---     boolean isMoveActionNotFinished - if the robot completed an action
+    ---     boolean isMoveActionFinished - if the robot completed an action
     ---     Position position - the current robot position
     ---     Position obstaclePosition - the obstacle position if an obstacle was found
     ---     RobotAction action - the action to perform
@@ -125,22 +154,39 @@ local MoveExecutioner = {
                 nextAction = self.actions[2]
             end
 
+            local isObstacleToX = {
+                left = CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity),
+                right = CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity),
+                front = CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity),
+                back = CollisionAvoidanceBehaviour.isObjectInBackRange(state.proximity)
+            }
+
             local result = nil
             if currentAction == MoveAction.GO_AHEAD then
-                result = self:handleGoAheadMove(state, currentPosition, currentDirection, nextAction)
+                result = self:handleGoAheadMove(state, isObstacleToX, currentPosition, currentDirection, nextAction)
             elseif currentAction == MoveAction.TURN_LEFT then
-                result = self:handleTurnLeftMove(state, currentPosition, currentDirection, nextAction)
+                result = self:handleTurnLeftMove(state, isObstacleToX, currentPosition, currentDirection, nextAction)
             elseif currentAction == MoveAction.TURN_RIGHT then
-                result = self:handleTurnRightMove(state, currentPosition, currentDirection, nextAction)
+                result = self:handleTurnRightMove(state, isObstacleToX, currentPosition, currentDirection, nextAction)
             elseif currentAction == MoveAction.GO_BACK then
-                result = self:handleGoBackMove(state, currentPosition, currentDirection, nextAction)
+                result = self:handleGoBackMove(state, isObstacleToX, currentPosition, currentDirection, nextAction)
             else
-                result  = self:handleGoBackBeforeTurningMove(state, currentPosition, currentDirection)
+                result  = self:handleGoBackBeforeTurningMove(state, isObstacleToX, currentPosition, currentDirection)
             end
 
             result.position = result.position or currentPosition
             result.isObstacleEncountered = result.isObstacleEncountered or false
             result.isMoveActionFinished = result.isMoveActionFinished or false
+
+            --[[
+                If the obstacle is in position (0,0) then we consider that the robot has resetted its position accordingly to
+                the direction it currently is
+            ]]
+            if result.isObstacleEncountered and result.obstaclePosition == Position:new(0,0) then
+                result.obstaclePosition = Position:new(-1,-1)
+                result.position = Position:new(0,0)
+                setDistanceTravelled(self, currentDirection, robot_parameters.distanceToGoBackWhenHome)
+            end
 
             logger.print(self.verticalDistanceTravelled .. "||" .. self.horizontalDistanceTravelled)
             if result.isMoveActionFinished then
@@ -157,15 +203,23 @@ local MoveExecutioner = {
         }
     end,
 
-    handleGoAheadMove = function (self, state, currentPosition, currentDirection, nextAction)
+    handleGoAheadMove = function (self, state, isObstacleToX, currentPosition, currentDirection, nextAction)
         updateStraightDistanceTravelled(self, state, currentDirection)
-        local isObstacleEncountered = CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity)
         local distanceTravelled = getDistanceTravelled(self, currentDirection)
         local newPosition = MoveAction.nextPosition(
             currentPosition,
             currentDirection,
             MoveAction.GO_AHEAD
         )
+
+        local isObstacleEncountered = isObstacleToX.front
+            or (isObstacleToX.left and isObstacleCloseToTheLeft(state))
+            or (isObstacleToX.right and isObstacleCloseToTheRight(state))
+
+        local levelsToSubsume = {}
+        if isObstacleToX.left or isObstacleToX.right then
+            levelsToSubsume = {2}
+        end
 
         if distanceTravelled >= robot_parameters.squareSideDimension then
             updateDistanceTravelled(self, currentDirection, -robot_parameters.squareSideDimension)
@@ -204,7 +258,7 @@ local MoveExecutioner = {
                 when he reaches the middle length of a square.
             ]]
             if distanceTravelled < robot_parameters.squareSideDimension / 2 then
-                return { action = RobotAction:new({}) }
+                return { action = RobotAction:new({}, levelsToSubsume) }
             else
                 --[[
                     if the robot has to turn immediately after, he is half square behind the next cell so
@@ -217,14 +271,15 @@ local MoveExecutioner = {
                 }
             end
         else
-            return { action = RobotAction:new({}) }
+            return { action = RobotAction:new({}, levelsToSubsume) }
         end
     end,
 
-    handleTurnLeftMove = function (self, state, currentPosition, currentDirection, nextAction)
+    handleTurnLeftMove = function (self, state, isObstacleToX, currentPosition, currentDirection, nextAction)
         return self:handleTurnMove(
             MoveAction.TURN_LEFT,
             state,
+            isObstacleToX,
             currentPosition,
             currentDirection,
             state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
@@ -233,10 +288,11 @@ local MoveExecutioner = {
         )
     end,
 
-    handleTurnRightMove = function (self, state, currentPosition, currentDirection, nextAction)
+    handleTurnRightMove = function (self, state, isObstacleToX, currentPosition, currentDirection, nextAction)
         return self:handleTurnMove(
             MoveAction.TURN_RIGHT,
             state,
+            isObstacleToX,
             currentPosition,
             currentDirection,
             state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
@@ -245,21 +301,13 @@ local MoveExecutioner = {
         )
     end,
 
-    handleTurnMove = function (self, turnDirection, state, currentPosition, currentDirection, isRobotTurning, nextAction)
+    handleTurnMove = function (self, turnDirection, state, isObstacleToX, currentPosition, currentDirection, isRobotTurning, nextAction)
         local nextDirection = MoveAction.nextDirection(self.oldDirection, turnDirection)
-
-        local isObstacleToX = {
-            left = CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity),
-            right = CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity),
-            front = CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity),
-        }
 
         if isObstacleToX.left or isObstacleToX.right or isObstacleToX.front then
             if isRobotTurning and isObstacleInTheSameCell(isObstacleToX, currentDirection, turnDirection, self.oldDirection) then
-                updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
                 return {
                     isObstacleEncountered = true,
-                    position = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK),
                     obstaclePosition = currentPosition
                 }
             elseif isRobotTurning then
@@ -324,9 +372,17 @@ local MoveExecutioner = {
         end
     end,
 
-    handleGoBackMove = function (self, state, currentPosition, currentDirection, nextAction)
+    handleGoBackMove = function (self, state, isObstacleToX, currentPosition, currentDirection, nextAction)
         updateStraightDistanceTravelled(self, state, currentDirection)
-        local isObstacleEncountered = CollisionAvoidanceBehaviour.isObjectInBackRange(state.proximity)
+
+        local isObstacleEncountered = isObstacleToX.back
+            or (isObstacleToX.left and isObstacleCloseToTheLeft(state))
+            or (isObstacleToX.right and isObstacleCloseToTheRight(state))
+
+        local levelsToSubsume = {1}
+        if isObstacleToX.left or isObstacleToX.right then
+            levelsToSubsume = {1, 2}
+        end
 
         if getDistanceTravelled(self, currentDirection) <= -robot_parameters.squareSideDimension then
             updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
@@ -356,7 +412,7 @@ local MoveExecutioner = {
                 changeAction(self, 1, MoveAction.GO_BACK_BEFORE_TURNING)
                 return {
                     position = newPosition,
-                    action = RobotAction.goBack({1})
+                    action = RobotAction.goBack(levelsToSubsume)
                 }
             else
                 return {
@@ -376,13 +432,21 @@ local MoveExecutioner = {
                 )
             }
         else
-            return { action = RobotAction.goBack({1}) }
+            return { action = RobotAction.goBack(levelsToSubsume) }
         end
     end,
 
-    handleGoBackBeforeTurningMove = function (self, state, currentPosition, currentDirection)
+    handleGoBackBeforeTurningMove = function (self, state, isObstacleToX, currentPosition, currentDirection)
         updateStraightDistanceTravelled(self, state, currentDirection)
-        local isObstacleEncountered = CollisionAvoidanceBehaviour.isObjectInBackRange(state.proximity)
+
+        local isObstacleEncountered = isObstacleToX.back
+            or (isObstacleToX.left and isObstacleCloseToTheLeft(state))
+            or (isObstacleToX.right and isObstacleCloseToTheRight(state))
+
+        local levelsToSubsume = {1}
+        if isObstacleToX.left or isObstacleToX.right then
+            levelsToSubsume = {1, 2}
+        end
 
         if isObstacleEncountered then
             return {
@@ -398,7 +462,7 @@ local MoveExecutioner = {
         elseif getDistanceTravelled(self, currentDirection) <= -robot_parameters.squareSideDimension / 2 then
             return { isMoveActionFinished = true }
         else
-            return { action = RobotAction.goBack({1}) }
+            return { action = RobotAction.goBack(levelsToSubsume) }
         end
     end,
 

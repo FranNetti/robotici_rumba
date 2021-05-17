@@ -70,24 +70,36 @@ RoomCoverage = {
         )
         logger.print("---------------")
 
+        local excludedOptions = Set:new{}
+        if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
+            excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT, ExcludeOption.EXCLUDE_BACK}
+        end
+
         local actions = self.planner:getActionsTo(
-            self.map.position,
+            Position:new(0,0),
             self.target,
             controller_utils.discreteDirection(state.robotDirection),
-            Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
+            excludedOptions
         )
 
         if actions ~= nil and #actions > 0 then
             self.moveExecutioner:setActions(actions)
             self.state = State.EXPLORING
         else
+            logger.print('!!!!!!!!!!!!!!')
+            logger.print('azioni non trovate')
+            logger.print(self.target:toString())
+            logger.print(self.map.position:toString())
+            logger.print('Direction ' .. controller_utils.discreteDirection(state.robotDirection).name)
+            logger.stringify(self.planner.graph)
+
             self.planner:addNewDiagonalPoint(self.target.lat + 1)
             self.map:addNewDiagonalPoint(self.target.lat + 1)
             actions = self.planner:getActionsTo(
-                self.map.position,
+                Position:new(0,0),
                 self.target,
                 controller_utils.discreteDirection(state.robotDirection),
-                Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
+                excludedOptions
             )
             if actions ~= nil and #actions > 0 then
                 self.moveExecutioner:setActions(actions)
@@ -178,17 +190,21 @@ RoomCoverage = {
         if result.isMoveActionFinished then
             self.map.position = result.position
             if self.oldState == State.EXPLORING then
-                self.map:addNewDiagonalPoint(self.target.lat + 1)
                 self.planner:addNewDiagonalPoint(self.target.lat + 1)
+                self.map:addNewDiagonalPoint(self.target.lat + 1)
                 local actions = self.planner:getActionsTo(
                     self.map.position,
                     self.target,
-                    controller_utils.discreteDirection(state.robotDirection)
+                    controller_utils.discreteDirection(state.robotDirection),
+                    Set:new{}
                 )
 
                 if actions ~= nil and #actions > 0 then
                     self.moveExecutioner:setActions(actions)
                     self.state = State.EXPLORING
+                    return RobotAction.stayStill({1})
+                elseif self.map.position == self.target then
+                    self.state = State.TARGET_REACHED
                     return RobotAction.stayStill({1})
                 else
                     logger.print("[ROOM COVERAGE]")
@@ -206,7 +222,11 @@ RoomCoverage = {
                     return RobotAction.stayStill({1})
                 end
             elseif self.oldState == State.GOING_HOME then
-                self.state = State.TARGET_REACHED
+                if self.map.position == Position:new(0,0) then
+                    self.state = State.STAND_BY
+                else
+                    self.state = State.TARGET_REACHED
+                end
                 return RobotAction.stayStill({1})
             end
         else
@@ -224,7 +244,7 @@ RoomCoverage = {
                 if map[i][j] == cell_status.TO_EXPLORE then
                     local excludedOptions = Set:new{}
                     if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
-                        excludedOptions = excludedOptions + Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
+                        excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
                     end
                     local actions = self.planner:getActionsTo(
                         self.map.position,
@@ -246,18 +266,22 @@ RoomCoverage = {
         end
         logger.print("[ROOM COVERAGE]")
         logger.print('Exploration complete!!!', LogLevel.INFO)
-        self.moveExecutioner:setActions(
-            self.planner:getActionsTo(self.map.position, Position:new(0,0), controller_utils.discreteDirection(state.robotDirection))
-        )
-        self.state = State.GOING_HOME
+        if self.map.position == Position:new(0,0) then
+            self.state = State.EXPLORED
+        else
+            self.moveExecutioner:setActions(
+                self.planner:getActionsTo(self.map.position, Position:new(0,0), controller_utils.discreteDirection(state.robotDirection))
+            )
+            self.state = State.GOING_HOME
+        end
         return RobotAction.stayStill({1})
     end,
 
     --[[ --------- EXPLORED ---------- ]]
 
     explored = function (self)
-        logger.printToConsole(self.map:toString())
-        logger.printToConsole('-------------------------------')
+        --[[ logger.printToConsole(self.map:toString())
+        logger.printToConsole('-------------------------------') ]]
         return RobotAction.stayStill({1})
     end,
 }

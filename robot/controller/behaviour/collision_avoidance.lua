@@ -9,8 +9,8 @@ local CLOSE_OBJECT_FRONT_DISTANCE_LIST = {
     0.75,
 };
 local CLOSE_OBJECT_HORIZONTAL_DISTANCE_LIST = {
-    0.75,
-    0.75,
+    0.85,
+    0.85,
     0.85,
     0.85
 }

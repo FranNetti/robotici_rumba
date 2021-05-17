@@ -7,6 +7,8 @@ local aStar = require('extensions.luagraphs.shortest_paths.a_star')
 local helpers = require('robot.planner.helpers')
 local CellStatus = require('robot.map.cell_status')
 
+local logger = require('util.logger')
+
 Planner = {
     new = function(self, map)
         local vertices = luaList.create()
@@ -26,8 +28,13 @@ Planner = {
 
     addNewDiagonalPoint = function(self, depth)
         local currentDepth = #self.map
-        local depthDifference = depth - currentDepth + 1
+        local depthDifference = depth - currentDepth
         self.graph:addVertexIfNotExists(self.encodeCoordinates(depth, depth))
+
+        logger.print('Current depth = ' .. currentDepth)
+        logger.print('Depth = ' .. depth)
+        logger.print('Depth difference = ' .. depthDifference)
+
         if depthDifference > 0 then
             for i = 0, currentDepth do
                 for j = currentDepth + 1, depth do
@@ -157,7 +164,7 @@ Planner = {
     end,
 
     setCellAs = function (self, cellPosition, cellStatus)
-        if cellStatus == CellStatus.OBSTACLE then
+        if cellStatus == CellStatus.OBSTACLE and cellPosition.lat >= 0 and cellPosition.lng >= 0 then
             local coordinates = self.encodeCoordinatesFromPosition(cellPosition)
             self.graph:removeVertex(coordinates)
         end

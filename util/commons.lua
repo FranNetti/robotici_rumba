@@ -11,6 +11,10 @@ Commons.Position = {
         return o
     end;
 
+    toString = function (self)
+        return 'Position(' .. self.lat ..',' .. self.lng .. ')'
+    end,
+
     __eq = function (a,b)
         return a.lat == b.lat and a.lng == b.lng
     end,
