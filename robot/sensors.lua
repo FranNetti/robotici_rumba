@@ -11,6 +11,7 @@ local TEMPERATURE_INCREASE_PROBABILITY = 0.8
 local MAX_TEMPERATURE_IN_ROOM = 60;
 
 local commons = require('util.commons')
+local logger = require('util.logger')
 local Direction = commons.Direction
 
 Sensors = {}
@@ -110,7 +111,7 @@ Sensors.DirtDetector = {
         local length = #self.areaList
         for i=1,length do
             if commons.positionInDirtArea(position, self.areaList[i]) then
-                commons.log("-- Dirt detected dirt -- <" .. position.lat .. "|" .. position.lng .. ">")
+                logger.print("|| Dirt detected dirt in " .. position:toString() .. " ||", logger.LogLevel.INFO)
                 return true
             end
         end

@@ -106,7 +106,7 @@ function step()
 
 	end
 
-	battery:tick()
+	--battery:tick()
 	temperatureSensor:tick()
 
 end

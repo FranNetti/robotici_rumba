@@ -31,10 +31,6 @@ Planner = {
         local depthDifference = depth - currentDepth
         self.graph:addVertexIfNotExists(self.encodeCoordinates(depth, depth))
 
-        logger.print('Current depth = ' .. currentDepth)
-        logger.print('Depth = ' .. depth)
-        logger.print('Depth difference = ' .. depthDifference)
-
         if depthDifference > 0 then
             for i = 0, currentDepth do
                 for j = currentDepth + 1, depth do

@@ -50,7 +50,7 @@ local function setDistanceTravelled(moveExecutioner, currentDirection, value)
 end
 
 local function isObstacleInTheSameCell(isObstacleToX, currentDirection, currentAction, oldDirection)
-    return currentDirection == oldDirection
+    return currentDirection == oldDirection and isObstacleToX.front
         or currentAction == MoveAction.TURN_LEFT and isObstacleToX.right
         or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.left
 end
@@ -313,7 +313,7 @@ local MoveExecutioner = {
             elseif isRobotTurning then
                 return {
                     isObstacleEncountered = true,
-                    obstaclePosition = MoveAction.nextPosition(currentPosition, currentDirection, turnDirection)
+                    obstaclePosition = MoveAction.nextPosition(currentPosition, self.oldDirection, turnDirection)
                 }
             else
                 if isObstacleToX.left then

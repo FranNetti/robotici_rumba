@@ -86,13 +86,6 @@ RoomCoverage = {
             self.moveExecutioner:setActions(actions)
             self.state = State.EXPLORING
         else
-            logger.print('!!!!!!!!!!!!!!')
-            logger.print('azioni non trovate')
-            logger.print(self.target:toString())
-            logger.print(self.map.position:toString())
-            logger.print('Direction ' .. controller_utils.discreteDirection(state.robotDirection).name)
-            logger.stringify(self.planner.graph)
-
             self.planner:addNewDiagonalPoint(self.target.lat + 1)
             self.map:addNewDiagonalPoint(self.target.lat + 1)
             actions = self.planner:getActionsTo(
@@ -105,6 +98,8 @@ RoomCoverage = {
                 self.moveExecutioner:setActions(actions)
                 self.state = State.EXPLORING
             else
+                logger.print("[ROOM COVERAGE]")
+                logger.print('Cell not reachable! Perimeter fully identified', LogLevel.INFO)
                 self.state = State.PERIMETER_IDENTIFIED
                 self.isPerimeterIdentified = true
                 self.target = Position:new(0,0)
@@ -126,8 +121,8 @@ RoomCoverage = {
             self.map.position = result.position
 
             logger.print("[ROOM COVERAGE]")
-            logger.print(self.planner.encodeCoordinatesFromPosition(self.map.position), LogLevel.INFO)
-            logger.print('Position (' .. self.planner.encodeCoordinatesFromPosition(result.obstaclePosition) .. ") detected as obstacle!", LogLevel.WARNING)
+            logger.print(self.map.position:toString(), LogLevel.INFO)
+            logger.print(result.obstaclePosition:toString() .. " detected as obstacle!", LogLevel.WARNING)
             logger.print("----------------", LogLevel.WARNING)
 
             self.map:setCellAsObstacle(result.obstaclePosition)
@@ -209,8 +204,8 @@ RoomCoverage = {
                 else
                     logger.print("[ROOM COVERAGE]")
                     logger.print(
-                        'Position (' .. self.planner.encodeCoordinatesFromPosition(self.target) .. ") is unreachable from"
-                        .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. "!",
+                        self.target:toString() .. " is unreachable from"
+                        .. self.map.position:toString() .. "!",
                         LogLevel.WARNING
                     )
                     logger.print("----------------", LogLevel.INFO)
@@ -280,8 +275,8 @@ RoomCoverage = {
     --[[ --------- EXPLORED ---------- ]]
 
     explored = function (self)
-        --[[ logger.printToConsole(self.map:toString())
-        logger.printToConsole('-------------------------------') ]]
+        logger.printToConsole(self.map:toString())
+        logger.printToConsole('-------------------------------')
         return RobotAction.stayStill({1})
     end,
 }
