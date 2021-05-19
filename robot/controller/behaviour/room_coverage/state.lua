@@ -13,6 +13,8 @@ State = {
     PERIMETER_IDENTIFIED = "PERIMETER IDENTIFIED",
     ---room explored
     EXPLORED = "EXPLORED",
+    ---something happened without the knowledge of the level, recompute
+    RECOVERY = "RECOVERY"
 }
 
 return State
