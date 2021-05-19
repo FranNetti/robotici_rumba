@@ -48,19 +48,19 @@ Commons.DirtArea = {
 Commons.Direction = {
     NORTH = {
         name = "N",
-        ranges = { 180.4, 179.6, -179.6, -180.4 }
+        ranges = { 180.6, 179.4, -179.4, -180.6 }
     },
     EAST = {
         name = "E",
-        ranges = { 90.4, 89.6 }
+        ranges = { 90.6, 89.4 }
     },
     SOUTH = {
         name = "S",
-        ranges = { 0.4, -0.4 }
+        ranges = { 0.6, -0.6 }
     },
     WEST ={
         name = "W",
-        ranges = { -89.6, -90.4 }
+        ranges = { -89.4, -90.6 }
     },
     NORTH_EAST ={
         name = "NE",

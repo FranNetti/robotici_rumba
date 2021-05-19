@@ -16,6 +16,14 @@ local State = require('robot.controller.behaviour.room_coverage.state')
 local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance')
 local MoveExecutioner = require('robot.controller.move_executioner')
 
+local function getExcludedOptionsByState(state)
+    local excludedOptions = Set:new{}
+    if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
+        excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT, ExcludeOption.EXCLUDE_BACK}
+    end
+    return excludedOptions
+end
+
 RoomCoverage = {
 
     ---Create new room coverage behaviour
@@ -51,7 +59,8 @@ RoomCoverage = {
         elseif self.state == State.EXPLORED then
             return self:explored(roomState)
         else
-            logger.printToConsole('Unknown state', LogLevel.WARNING)
+            logger.printToConsole('[ROOM_COVERAGE] Unknown state', LogLevel.WARNING)
+            logger.printTo('[ROOM_COVERAGE] Unknown state', LogLevel.WARNING)
         end
     end,
 
@@ -64,16 +73,13 @@ RoomCoverage = {
 
         logger.print("[ROOM COVERAGE]")
         logger.print(
-            "(" .. self.planner.encodeCoordinatesFromPosition(self.map.position) .. ") ["
-            .. controller_utils.discreteDirection(state.robotDirection).name ..  "] - ("
-            .. self.planner.encodeCoordinatesFromPosition(self.target) .. ")"
+            "Currently in " .. self.map.position:toString() .. " ["
+            .. controller_utils.discreteDirection(state.robotDirection).name ..  "] - Target is "
+            .. self.target:toString()
         )
         logger.print("---------------")
 
-        local excludedOptions = Set:new{}
-        if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
-            excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT, ExcludeOption.EXCLUDE_BACK}
-        end
+        local excludedOptions = getExcludedOptionsByState(state)
 
         local actions = self.planner:getActionsTo(
             Position:new(0,0),
@@ -121,7 +127,7 @@ RoomCoverage = {
             self.map.position = result.position
 
             logger.print("[ROOM COVERAGE]")
-            logger.print(self.map.position:toString(), LogLevel.INFO)
+            logger.print("Currently in " .. self.map.position:toString(), LogLevel.INFO)
             logger.print(result.obstaclePosition:toString() .. " detected as obstacle!", LogLevel.WARNING)
             logger.print("----------------", LogLevel.WARNING)
 
@@ -170,7 +176,11 @@ RoomCoverage = {
             self.state = State.PERIMETER_IDENTIFIED
         else
             self.moveExecutioner:setActions(
-                self.planner:getActionsTo(self.map.position, Position:new(0,0), controller_utils.discreteDirection(state.robotDirection))
+                self.planner:getActionsTo(
+                    self.map.position,
+                    Position:new(0,0),
+                    controller_utils.discreteDirection(state.robotDirection)
+                )
             )
             self.state = State.GOING_HOME
         end
@@ -191,7 +201,7 @@ RoomCoverage = {
                     self.map.position,
                     self.target,
                     controller_utils.discreteDirection(state.robotDirection),
-                    Set:new{}
+                    getExcludedOptionsByState(state)
                 )
 
                 if actions ~= nil and #actions > 0 then
@@ -204,7 +214,7 @@ RoomCoverage = {
                 else
                     logger.print("[ROOM COVERAGE]")
                     logger.print(
-                        self.target:toString() .. " is unreachable from"
+                        self.target:toString() .. " is unreachable from "
                         .. self.map.position:toString() .. "!",
                         LogLevel.WARNING
                     )
@@ -233,19 +243,16 @@ RoomCoverage = {
 
     perimeterIdentified = function (self, state)
         local map = self.map.map
+        local excludeOptions = getExcludedOptionsByState(state)
         for i = self.target.lat, #map do
             for j = self.target.lng , #map[i] do
                 local cell = Position:new(i,j)
                 if map[i][j] == cell_status.TO_EXPLORE then
-                    local excludedOptions = Set:new{}
-                    if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
-                        excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
-                    end
                     local actions = self.planner:getActionsTo(
                         self.map.position,
                         cell,
                         controller_utils.discreteDirection(state.robotDirection),
-                        excludedOptions
+                        excludeOptions
                     )
                     if actions ~= nil and #actions > 0 then
                         self.moveExecutioner:setActions(actions)
@@ -265,7 +272,12 @@ RoomCoverage = {
             self.state = State.EXPLORED
         else
             self.moveExecutioner:setActions(
-                self.planner:getActionsTo(self.map.position, Position:new(0,0), controller_utils.discreteDirection(state.robotDirection))
+                self.planner:getActionsTo(
+                    self.map.position,
+                    Position:new(0,0),
+                    controller_utils.discreteDirection(state.robotDirection),
+                    excludeOptions
+                )
             )
             self.state = State.GOING_HOME
         end

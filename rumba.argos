@@ -55,10 +55,10 @@
     </box>
  
     <!--<distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
+      <position method="uniform" min="-1,-1,0" max="0.5,0.5,0" />
       <orientation method="uniform" min="0,0,0" max="360,0,0" />
-      <entity quantity="5" max_trials="100">
-        <box id="o" size="0.2, 0.2, 0.2" movable="false" />
+      <entity quantity="3" max_trials="100">
+        <box id="o" size="0.1, 0.1, 0.1" movable="false" />
       </entity>
     </distribute>-->
     
