@@ -35,17 +35,17 @@ end
 
 local function updateDistanceTravelled(moveExecutioner, currentDirection, offset)
     if currentDirection == Direction.SOUTH or currentDirection == Direction.NORTH then
-        moveExecutioner.verticalDistanceTravelled = moveExecutioner.verticalDistanceTravelled + offset
+        moveExecutioner.map:updateVerticalOffset(offset)
     else
-        moveExecutioner.horizontalDistanceTravelled = moveExecutioner.horizontalDistanceTravelled + offset
+        moveExecutioner.map:updateHorizontalOffset(offset)
     end
 end
 
 local function setDistanceTravelled(moveExecutioner, currentDirection, value)
     if currentDirection == Direction.SOUTH or currentDirection == Direction.NORTH then
-        moveExecutioner.verticalDistanceTravelled = value
+        moveExecutioner.map:setVerticalOffset(value)
     else
-        moveExecutioner.horizontalDistanceTravelled = value
+        moveExecutioner.map:setHorizontalOffset(value)
     end
 end
 
@@ -75,9 +75,9 @@ end
 
 local function getDistanceTravelled(moveExecutioner, currentDirection)
     if currentDirection == Direction.SOUTH or currentDirection == Direction.NORTH then
-        return moveExecutioner.verticalDistanceTravelled
+        return moveExecutioner.map.verticalOffset
     else
-        return moveExecutioner.horizontalDistanceTravelled
+        return moveExecutioner.map.horizontalOffset
     end
 end
 
@@ -116,10 +116,9 @@ end
 
 local MoveExecutioner = {
 
-    new = function (self)
+    new = function (self, map)
         local o = {
-            verticalDistanceTravelled = 0,
-            horizontalDistanceTravelled = 0,
+            map = map,
             oldDirection = nil,
             actions = nil,
         }
@@ -145,7 +144,8 @@ local MoveExecutioner = {
     ---     Position obstaclePosition - the obstacle position if an obstacle was found
     ---     RobotAction action - the action to perform
     ---}
-    doNextMove = function (self, state, currentPosition)
+    doNextMove = function (self, state)
+        local currentPosition = self.map.position
         if self:hasMoreActions() then
             local currentDirection = controller_utils.discreteDirection(state.robotDirection)
             local currentAction = self.actions[1]
@@ -188,7 +188,7 @@ local MoveExecutioner = {
                 setDistanceTravelled(self, currentDirection, robot_parameters.distanceToGoBackWhenHome)
             end
 
-            logger.print(self.verticalDistanceTravelled .. "||" .. self.horizontalDistanceTravelled)
+            logger.print(self.map.verticalOffset .. "||" .. self.map.horizontalOffset)
             if result.isMoveActionFinished then
                 logger.print("------------")
                 removeFirstAction(self)
@@ -474,10 +474,11 @@ local MoveExecutioner = {
     ---     boolean isMoveActionNotFinished - if the robot completed an action
     ---     RobotAction action - the action to perform
     ---}
-    getAwayFromObstacle = function (self, state, currentPosition)
+    getAwayFromObstacle = function (self, state)
+        local currentPosition = self.map.position
         local currentAction = self.actions[1]
         local result = nil
-        logger.print(self.verticalDistanceTravelled .. "||" .. self.horizontalDistanceTravelled)
+        logger.print(self.map.verticalOffset .. "||" .. self.map.horizontalOffset)
         if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
             result = self:handleCancelStraightMove(state, controller_utils.discreteDirection(state.robotDirection))
         elseif currentAction == MoveAction.TURN_LEFT then

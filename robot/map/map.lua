@@ -7,6 +7,8 @@ Map = {
     new = function(self)
         local o = {
             position = Position:new(0, 0),
+            verticalOffset = 0,
+            horizontalOffset = 0,
             map = {[0] = {[0] = CellStatus.CLEAN}},
         }
         setmetatable(o, self)
@@ -31,6 +33,22 @@ Map = {
                 end
             end
         end
+    end,
+
+    updateVerticalOffset = function (self, offset)
+        self.verticalOffset = self.verticalOffset + offset
+    end,
+
+    updateHorizontalOffset = function (self, offset)
+        self.horizontalOffset = self.horizontalOffset + offset
+    end,
+
+    setVerticalOffset = function (self, offset)
+        self.verticalOffset = offset
+    end,
+
+    setHorizontalOffset = function (self, offset)
+        self.horizontalOffset = offset
     end,
 
     updatePosition = function (self, newPosition)

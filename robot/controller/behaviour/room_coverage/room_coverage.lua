@@ -35,7 +35,7 @@ RoomCoverage = {
             state = State.STAND_BY,
             planner = Planner:new(map.map),
             target = Position:new(0,0),
-            moveExecutioner = MoveExecutioner:new(),
+            moveExecutioner = MoveExecutioner:new(map),
             oldDirection = nil,
             oldState = nil,
             lastKnownPosition = nil,
@@ -136,7 +136,7 @@ RoomCoverage = {
             return RobotAction.stayStill({1})
         end
 
-        local result = self.moveExecutioner:doNextMove(state, self.map.position)
+        local result = self.moveExecutioner:doNextMove(state)
         self.lastKnownPosition = result.position
         self.map.position = result.position
 
@@ -211,7 +211,7 @@ RoomCoverage = {
         if self.lastKnownPosition ~= self.map.position then
             result = { isMoveActionFinished = true }
         else
-            result = self.moveExecutioner:getAwayFromObstacle(state, self.map.position)
+            result = self.moveExecutioner:getAwayFromObstacle(state)
             self.lastKnownPosition = result.position
             self.map.position = result.position
         end
