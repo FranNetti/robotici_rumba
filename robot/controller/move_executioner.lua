@@ -5,7 +5,7 @@ local logger = require('util.logger')
 local robot_parameters = require('robot.parameters')
 local RobotAction = require('robot.commons').Action
 
-local MoveAction = require('robot.planner.move_action')
+local MoveAction = require('robot.controller.planner.move_action')
 
 local controller_utils = require('robot.controller.utils')
 local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')

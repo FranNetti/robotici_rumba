@@ -1,14 +1,14 @@
 require 'math'
-local cell_status = require "robot.map.cell_status"
+local cell_status = require "robot.controller.map.cell_status"
 math.randomseed(1234)
 local commons = require 'util.commons'
 local Position = require 'util.commons'.Position
 local Direction = require 'util.commons'.Direction
-local ExcludeOption = require('robot.planner.exclude_option')
+local ExcludeOption = require('robot.controller.planner.exclude_option')
 local Set = require 'util.set'
 
-local map = require('robot.map.map')
-local planner = require('robot.planner.planner')
+local map = require('robot.controller.map.map')
+local planner = require('robot.controller.planner.planner')
 local logger = require('util.logger')
 
 local function setupWorkspace()

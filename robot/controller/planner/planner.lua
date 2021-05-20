@@ -1,11 +1,9 @@
-local cell_status = require('robot.map.cell_status')
-
 local luaList = require('luagraphs.data.list')
 local luaGraph = require('extensions.luagraphs.data.graph')
 local aStar = require('extensions.luagraphs.shortest_paths.a_star')
 
-local helpers = require('robot.planner.helpers')
-local CellStatus = require('robot.map.cell_status')
+local helpers = require('robot.controller.planner.helpers')
+local CellStatus = require('robot.controller.map.cell_status')
 
 local logger = require('util.logger')
 
@@ -39,7 +37,7 @@ Planner = {
                         link the new cell only if the one to the right isn't an
                         obstacle nor exists
                     ]]
-                    if cell == nil or cell ~= cell_status.OBSTACLE then
+                    if cell == nil or cell ~= CellStatus.OBSTACLE then
                         self.graph:addEdge(
                             self.encodeCoordinates(i, j - 1),
                             self.encodeCoordinates(i, j)
@@ -54,14 +52,14 @@ Planner = {
 
             for i= currentDepth + 1, depth do
                 local isFirstRow = i == currentDepth + 1
-                if not isFirstRow or self.map[i - 1][0] ~= cell_status.OBSTACLE then
+                if not isFirstRow or self.map[i - 1][0] ~= CellStatus.OBSTACLE then
                     self.graph:addEdge(
                         self.encodeCoordinates(i - 1, 0),
                         self.encodeCoordinates(i, 0)
                     )
                 end
                 for j = 1, depth do
-                    if i ~= j and isFirstRow and self.map[i - 1][j] ~= cell_status.OBSTACLE then
+                    if i ~= j and isFirstRow and self.map[i - 1][j] ~= CellStatus.OBSTACLE then
                         self.graph:addEdge(
                             self.encodeCoordinates(i - 1, j),
                             self.encodeCoordinates(i, j)

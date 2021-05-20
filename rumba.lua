@@ -6,7 +6,7 @@ local actuators = require('robot.actuators')
 local commons = require('util.commons')
 local logger = require('util.logger')
 local RobotState = require('robot.commons').State
-local Map = require('robot.map.map')
+local Map = require('robot.controller.map.map')
 
 local Color, Position, DirtArea = commons.Color, commons.Position, commons.DirtArea
 local Subsumption = require('robot.controller.subsumption')

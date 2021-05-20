@@ -1,6 +1,6 @@
 local commons = require('util.commons')
 local Position = commons.Position
-local CellStatus = require('robot.map.cell_status')
+local CellStatus = require('robot.controller.map.cell_status')
 
 Map = {
 

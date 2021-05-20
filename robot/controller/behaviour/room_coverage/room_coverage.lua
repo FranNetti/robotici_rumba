@@ -1,5 +1,5 @@
 local commons = require('util.commons')
-local cell_status = require "robot.map.cell_status"
+local cell_status = require("robot.controller.map.cell_status")
 local Position = commons.Position
 local Set = require('util.set')
 
@@ -7,9 +7,9 @@ local logger = require('util.logger')
 local LogLevel = logger.LogLevel
 
 local RobotAction = require('robot.commons').Action
-local MoveAction = require('robot.planner.move_action')
-local ExcludeOption = require('robot.planner.exclude_option')
-local Planner = require('robot.planner.planner')
+local MoveAction = require('robot.controller.planner.move_action')
+local ExcludeOption = require('robot.controller.planner.exclude_option')
+local Planner = require('robot.controller.planner.planner')
 
 local controller_utils = require('robot.controller.utils')
 local State = require('robot.controller.behaviour.room_coverage.state')
