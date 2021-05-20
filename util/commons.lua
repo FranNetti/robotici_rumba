@@ -1,6 +1,6 @@
-Commons = {}
+local commons = {}
 
-Commons.Position = {
+commons.Position = {
     new = function(self, lat, lng)
         local o = {
             lat = lat,
@@ -19,8 +19,7 @@ Commons.Position = {
         return a.lat == b.lat and a.lng == b.lng
     end,
 }
-
-Commons.DirtArea = {
+commons.DirtArea = {
 
     ---Create a new DirtArea
     ---@param topLeft table Position
@@ -44,8 +43,7 @@ Commons.DirtArea = {
         end
     end
 }
-
-Commons.Direction = {
+commons.Direction = {
     NORTH = {
         name = "N",
         ranges = { 180.6, 179.4, -179.4, -180.6 }
@@ -79,8 +77,7 @@ Commons.Direction = {
         ranges = {}
     }
 }
-
-Commons.Color = {
+commons.Color = {
     BLACK = "black", WHITE = "white", RED = "red", GREEN = "green", BLUE = "blue", MAGENTA = "magenta", CYAN = "cyan",
     YELLOW = "yellow", ORANGE = "orange", BROWN = "brown", PURPLE = "purple", GRAY = "gray40"
 }
@@ -89,13 +86,12 @@ Commons.Color = {
 ---@param position table Position the position
 ---@param dirtArea table DirtArea the dirt area
 ---@return boolean if the given position is in dirtArea
-Commons.positionInDirtArea = function (position, dirtArea)
+commons.positionInDirtArea = function (position, dirtArea)
     return position.lat <= dirtArea.bottomRight.lat
         and position.lat >= dirtArea.topLeft.lat
         and position.lng <= dirtArea.topLeft.lng
         and position.lng >= dirtArea.bottomRight.lng
 end
+commons.decreseNumberSortFunction = function(a, b) return b < a end
 
-Commons.decreseNumberSortFunction = function(a, b) return b < a end
-
-return Commons;
+return commons;
