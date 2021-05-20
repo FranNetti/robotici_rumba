@@ -11,7 +11,7 @@ local Map = require('robot.map.map')
 local Color, Position, DirtArea = commons.Color, commons.Position, commons.DirtArea
 local Subsumption = require('robot.controller.subsumption')
 local RobotAdvance = require('robot.controller.behaviour.robot_advance')
-local CollisionAvoidance = require('robot.controller.behaviour.collision_avoidance')
+local CollisionAvoidance = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 local RoomCoverage = require('robot.controller.behaviour.room_coverage.room_coverage')
 
 local INITIAL_ROOM_TEMPERATURE = 12

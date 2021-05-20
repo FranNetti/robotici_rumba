@@ -13,7 +13,7 @@ local Planner = require('robot.planner.planner')
 
 local controller_utils = require('robot.controller.utils')
 local State = require('robot.controller.behaviour.room_coverage.state')
-local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance')
+local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 local MoveExecutioner = require('robot.controller.move_executioner')
 
 local function getExcludedOptionsByState(state)

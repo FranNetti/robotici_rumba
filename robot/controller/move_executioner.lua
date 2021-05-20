@@ -8,7 +8,7 @@ local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.planner.move_action')
 
 local controller_utils = require('robot.controller.utils')
-local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance')
+local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 
 local LEFT_DISTANCE_WHILE_GOING_STRAIGHT = 0.95
 local RIGHT_DISTANCE_WHILE_GOING_STRAIGHT = 0.95
