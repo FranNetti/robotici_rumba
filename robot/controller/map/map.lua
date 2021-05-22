@@ -35,6 +35,14 @@ Map = {
         end
     end,
 
+    getCell = function (self, position)
+        return self.map[position.lat][position.lng]
+    end,
+
+    getCurrentCell = function (self)
+        return self:getCell(self.position)
+    end,
+
     updateVerticalOffset = function (self, offset)
         self.verticalOffset = self.verticalOffset + offset
     end,
