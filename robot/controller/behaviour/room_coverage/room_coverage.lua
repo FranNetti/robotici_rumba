@@ -36,10 +36,8 @@ RoomCoverage = {
             planner = Planner:new(map.map),
             target = Position:new(0,0),
             moveExecutioner = MoveExecutioner:new(map),
-            oldDirection = nil,
             oldState = nil,
             lastKnownPosition = nil,
-            isPerimeterIdentified = false,
         }
         setmetatable(o, self)
         self.__index = self
@@ -62,22 +60,32 @@ RoomCoverage = {
         elseif self.state == State.RECOVERY then
             return self:recovery(roomState)
         else
-            logger.printToConsole('[ROOM_COVERAGE] Unknown state', LogLevel.WARNING)
-            logger.printTo('[ROOM_COVERAGE] Unknown state', LogLevel.WARNING)
+            logger.printToConsole('[ROOM_COVERAGE] Unknown state: ' .. self.state, LogLevel.WARNING)
+            logger.printTo('[ROOM_COVERAGE] Unknown state: ' .. self.state, LogLevel.WARNING)
         end
     end,
 
     --[[ --------- STAND BY ---------- ]]
 
     standBy = function (self, state)
+
+        if self.map.position ~= Position:new(0,0) then
+            self.state = State.RECOVERY
+            self.oldState = State.GOING_HOME
+            return RobotAction.stayStill({1})
+        end
+
+
         self.target = Position:new(self.target.lat + 1, self.target.lng + 1)
         self.planner:addNewDiagonalPoint(self.target.lat)
         self.map:addNewDiagonalPoint(self.target.lat)
 
+        local currentDirection = controller_utils.discreteDirection(state.robotDirection)
+
         logger.print("[ROOM COVERAGE]")
         logger.print(
             "Currently in " .. self.map.position:toString() .. " ["
-            .. controller_utils.discreteDirection(state.robotDirection).name ..  "] - Target is "
+            .. currentDirection.name ..  "] - Target is "
             .. self.target:toString()
         )
         logger.print("---------------")
@@ -85,13 +93,13 @@ RoomCoverage = {
         local excludedOptions = getExcludedOptionsByState(state)
 
         local actions = self.planner:getActionsTo(
-            Position:new(0,0),
+            self.map.position,
             self.target,
-            controller_utils.discreteDirection(state.robotDirection),
+            currentDirection,
             excludedOptions
         )
 
-        self.lastKnownPosition = Position:new(0,0)
+        self.lastKnownPosition = self.map.position
 
         if actions ~= nil and #actions > 0 then
             self.moveExecutioner:setActions(actions)
@@ -100,9 +108,9 @@ RoomCoverage = {
             self.planner:addNewDiagonalPoint(self.target.lat + 1)
             self.map:addNewDiagonalPoint(self.target.lat + 1)
             actions = self.planner:getActionsTo(
-                Position:new(0,0),
+                self.map.position,
                 self.target,
-                controller_utils.discreteDirection(state.robotDirection),
+                currentDirection,
                 excludedOptions
             )
             if actions ~= nil and #actions > 0 then
@@ -112,7 +120,7 @@ RoomCoverage = {
                 logger.print("[ROOM COVERAGE]")
                 logger.print('Cell not reachable! Perimeter fully identified', LogLevel.INFO)
                 self.state = State.PERIMETER_IDENTIFIED
-                self.isPerimeterIdentified = true
+                self.map.isPerimeterIdentified = true
                 self.target = Position:new(0,0)
             end
         end
@@ -154,7 +162,6 @@ RoomCoverage = {
         elseif result.isMoveActionFinished then
             self.map:setCellAsClean(result.position)
             self.planner:setCellAsClean(result.position)
-            self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
             return self:followPlanNextMove()
         else
             return result.action
@@ -175,7 +182,7 @@ RoomCoverage = {
             end
         elseif self.state == State.EXPLORING then
             self.state = State.TARGET_REACHED
-        elseif self.state == State.GOING_HOME and not self.isPerimeterIdentified then
+        elseif self.state == State.GOING_HOME and not self.map.isPerimeterIdentified then
             self.state = State.STAND_BY
         elseif self.state == State.GOING_HOME then
             self.state = State.EXPLORED
@@ -186,7 +193,7 @@ RoomCoverage = {
     --[[ ---------- TARGET REACHED --------- ]]
 
     targetReached = function (self, state)
-        if self.isPerimeterIdentified then
+        if self.map.isPerimeterIdentified then
             self.state = State.PERIMETER_IDENTIFIED
         elseif self.map.position == Position:new(0,0) then
             self.state = State.STAND_BY
@@ -240,7 +247,7 @@ RoomCoverage = {
                         LogLevel.WARNING
                     )
                     logger.print("----------------", LogLevel.INFO)
-                    if self.isPerimeterIdentified then
+                    if self.map.isPerimeterIdentified then
                         self.state = State.PERIMETER_IDENTIFIED
                     else
                         self.state = State.TARGET_REACHED
@@ -264,6 +271,7 @@ RoomCoverage = {
     perimeterIdentified = function (self, state)
         local map = self.map.map
         local excludeOptions = getExcludedOptionsByState(state)
+        local currentDirection = controller_utils.discreteDirection(state.robotDirection)
         for i = self.target.lat, #map do
             for j = self.target.lng , #map[i] do
                 local cell = Position:new(i,j)
@@ -271,7 +279,7 @@ RoomCoverage = {
                     local actions = self.planner:getActionsTo(
                         self.map.position,
                         cell,
-                        controller_utils.discreteDirection(state.robotDirection),
+                        currentDirection,
                         excludeOptions
                     )
                     if actions ~= nil and #actions > 0 then

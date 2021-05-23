@@ -10,6 +10,7 @@ Map = {
             verticalOffset = 0,
             horizontalOffset = 0,
             map = {[0] = {[0] = CellStatus.CLEAN}},
+            isPerimeterIdentified = false,
         }
         setmetatable(o, self)
         self.__index = self
