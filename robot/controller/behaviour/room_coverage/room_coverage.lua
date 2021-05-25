@@ -316,6 +316,14 @@ RoomCoverage = {
 
     recovery = function (self, state)
 
+        --[[
+            reset the planner because something in the map could have
+            changed and the planner must be in sync with that
+        ]]
+        local currentDepth = #self.map.map
+        self.planner = Planner:new(self.map)
+        self.planner:addNewDiagonalPoint(currentDepth)
+
         if self.oldState == State.EXPLORING and self.map.position == self.target then
             self.state = State.TARGET_REACHED
         elseif self.state == State.GOING_HOME and self.map.position == Position:new(0,0) then
