@@ -87,6 +87,13 @@ local function getExcludedOptionsByState(state)
     return excludedOptions
 end
 
+local function isRobotTurning(state)
+    return state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
+        and state.wheels.velocity_right ~= 0
+        or state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
+        and state.wheels.velocity_left ~= 0
+end
+
 RoomCleaner = {
 
     new = function (self, map)
@@ -97,7 +104,8 @@ RoomCleaner = {
             planner = nil,
             target = nil,
             lastKnownPosition = map.position,
-            oldDirection = Direction.NORTH
+            oldDirection = Direction.NORTH,
+            checkedCellsAfterPerimeterIdentified = false,
         }
         setmetatable(o, self)
         self.__index = self
@@ -119,6 +127,8 @@ RoomCleaner = {
         end
     end,
 
+    --[[ --------- WORKING ---------- ]]
+
     working = function (self, state)
         if not isRobotNearLastKnownPosition(self.lastKnownPosition, self.map.position) then
             return self:handleDifferentPosition(state)
@@ -127,10 +137,31 @@ RoomCleaner = {
         if self.map:getCurrentCell() == CellStatus.DIRTY then
             self.map:setCellAsClean(self.map.position)
         end
+
+        if not isRobotTurning(state) then
+            --[[
+                update the direction only if the robot is not turning
+                since in that case the direction may change in any moment
+            ]]
+            self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
+        end
+
         self.lastKnownPosition = self.map.position
         self.target = nil
-        return RobotAction:new({})
+
+        if self.map.isPerimeterIdentified and not self.checkedCellsAfterPerimeterIdentified then
+            --[[
+                when the robot has identified the room perimeter it needs to check
+                whether there are some dirty cells or not and clean them
+            ]]
+            self.checkedCellsAfterPerimeterIdentified = true
+            return self:goToFirstDirtyCell(state)
+        else
+            return RobotAction:new({})
+        end
     end,
+
+    --[[ --------- HANDLE DIRTY CELL ---------- ]]
 
     handleDirtyCell = function (self, state)
         local dirtPositions = detectDirtyPositions(
@@ -150,7 +181,18 @@ RoomCleaner = {
         }, {1, 3})
     end,
 
+    --[[ --------- HANDLE DIFFERENT CELL ---------- ]]
+
     handleDifferentPosition = function (self, state)
+        self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
+        self.checkedCellsAfterPerimeterIdentified = false
+        return self:goToFirstDirtyCell(state)
+    end,
+
+    --[[ --------- GO TO FIRST DIRTY CELL ---------- ]]
+
+    goToFirstDirtyCell = function (self, state)
+        self.lastKnownPosition = self.map.position
         local dirtPosition = getFirstDirtyCell(self.map)
         if dirtPosition ~= nil then
             local currentDepth = #self.map.map
@@ -161,6 +203,7 @@ RoomCleaner = {
                 local success = self:computeActionsToDirtCell(state, dirtPosition, currentDepth)
                 if success then
                     self.target = dirtPosition
+                    self.state = State.GOING_TO_DIRT
                     return RobotAction.stayStill({1,3})
                 else
                     --[[
@@ -186,11 +229,9 @@ RoomCleaner = {
             currentDirection,
             excludedOptions
         )
-        self.lastKnownPosition = self.map.position
 
         if actions ~= nil and #actions > 0 then
             self.moveExecutioner:setActions(actions)
-            self.state = State.GOING_TO_DIRT
             return true
         else
             self.planner:addNewDiagonalPoint(currentDepth + 1)
@@ -203,7 +244,6 @@ RoomCleaner = {
             )
             if actions ~= nil and #actions > 0 then
                 self.moveExecutioner:setActions(actions)
-                self.state = State.GOING_TO_DIRT
                 return true
             else
                 if self.map.isPerimeterIdentified then
@@ -213,6 +253,8 @@ RoomCleaner = {
             end
         end
     end,
+
+    --[[ --------- REACH DIRT POSITION ---------- ]]
 
     reachDirtPosition = function (self, state)
 
@@ -260,20 +302,26 @@ RoomCleaner = {
                 return RobotAction.turnRight({1, 3})
             end
         else
-            return self:handleDifferentPosition(state)
+            --[[
+                the robot has already cleaned the current cell because the robot automatically cleans
+                when in a dirty cell. Next move is to check whether other dirty cells have been discovered
+                by upper levels
+            ]]
+            return self:goToFirstDirtyCell(state)
         end
     end,
 
+    --[[ --------- HANDLE OBSTACLE ---------- ]]
+
     handleObstacle = function (self, state)
 
-        local result = nil
         if self.lastKnownPosition ~= self.map.position then
             return self:handleDifferentPosition(state)
-        else
-            result = self.moveExecutioner:getAwayFromObstacle(state)
-            self.lastKnownPosition = result.position
-            self.map.position = result.position
         end
+
+        local result = self.moveExecutioner:getAwayFromObstacle(state)
+        self.lastKnownPosition = result.position
+        self.map.position = result.position
 
         if result.isMoveActionFinished then
             self.planner:addNewDiagonalPoint(self.target.lat + 1)
@@ -290,7 +338,7 @@ RoomCleaner = {
                 self.state = State.GOING_TO_DIRT
                 return RobotAction.stayStill({1, 3})
             elseif self.map.position == self.target then
-                return self:handleDifferentPosition(state)
+                return self:goToFirstDirtyCell(state)
             else
                 logger.print("[ROOM_CLEANER]")
                 logger.print(
@@ -299,7 +347,10 @@ RoomCleaner = {
                     LogLevel.WARNING
                 )
                 logger.print("----------------", LogLevel.INFO)
-                return self:handleDifferentPosition(state)
+                if self.map.isPerimeterIdentified then
+                    self.map:setCellAsObstacle(self.target)
+                end
+                return self:goToFirstDirtyCell(state)
             end
         else
             -- subsume no matter what the room coverage level
