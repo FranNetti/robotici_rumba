@@ -40,7 +40,7 @@ local function getFirstDirtyCell(map, dirtPositionsToSkip)
     return nil
 end
 
-local function detectDirtyPositions(state, map, lastKnownPosition, oldDirection)
+local function detectDirtyPositions(state, map, currentPositiom, oldDirection)
     local isTurningRight = state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
         and state.wheels.velocity_right ~= 0
     local isTurningLeft = state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
@@ -56,27 +56,27 @@ local function detectDirtyPositions(state, map, lastKnownPosition, oldDirection)
     end
 
     if (isTurningLeft or isTurningRight) and currentDirection == oldDirection then
-        return { lastKnownPosition }
+        return { currentPositiom }
     elseif isTurningLeft then
-        return { MoveAction.nextPosition(lastKnownPosition, oldDirection, MoveAction.TURN_LEFT) }
+        return { MoveAction.nextPosition(currentPositiom, oldDirection, MoveAction.TURN_LEFT) }
     elseif isTurningRight then
-        return { MoveAction.nextPosition(lastKnownPosition, oldDirection, MoveAction.TURN_RIGHT) }
+        return { MoveAction.nextPosition(currentPositiom, oldDirection, MoveAction.TURN_RIGHT) }
     elseif speed > 0 and distanceTravelled > 0 then
-            return { MoveAction.nextPosition(lastKnownPosition, currentDirection, MoveAction.GO_AHEAD) }
+            return { MoveAction.nextPosition(currentPositiom, currentDirection, MoveAction.GO_AHEAD) }
     elseif speed < 0 and distanceTravelled < 0 then
-        return { MoveAction.nextPosition(lastKnownPosition, currentDirection, MoveAction.GO_BACK) }
+        return { MoveAction.nextPosition(currentPositiom, currentDirection, MoveAction.GO_BACK) }
     elseif speed == 0 and distanceTravelled > 0 then
         return {
-            MoveAction.nextPosition(lastKnownPosition, currentDirection, MoveAction.GO_AHEAD),
-            lastKnownPosition
+            MoveAction.nextPosition(currentPositiom, currentDirection, MoveAction.GO_AHEAD),
+            currentPositiom
         }
     elseif speed == 0 and distanceTravelled < 0 then
         return {
-            MoveAction.nextPosition(lastKnownPosition, currentDirection, MoveAction.GO_BACK),
-            lastKnownPosition
+            MoveAction.nextPosition(currentPositiom, currentDirection, MoveAction.GO_BACK),
+            currentPositiom
         }
     end
-    return { lastKnownPosition }
+    return { currentPositiom }
 end
 
 local function getExcludedOptionsByState(state)
@@ -106,6 +106,7 @@ RoomCleaner = {
             lastKnownPosition = map.position,
             oldDirection = Direction.NORTH,
             checkedCellsAfterPerimeterIdentified = false,
+            isCleaning = false,
         }
         setmetatable(o, self)
         self.__index = self
@@ -115,15 +116,18 @@ RoomCleaner = {
     tick = function (self, state)
         if state.isDirtDetected then
             return self:handleDirtyCell(state)
-        elseif self.state == State.WORKING then
-            return self:working(state)
-        elseif self.state == State.GOING_TO_DIRT then
-            return self:reachDirtPosition(state)
-        elseif self.state == State.OBSTACLE_ENCOUNTERED then
-            return self:handleObstacle(state)
         else
-            logger.printToConsole('[ROOM_CLEANER] Unknown state: ' .. self.state, LogLevel.WARNING)
-            logger.printTo('[ROOM_CLEANER] Unknown state: ' .. self.state, LogLevel.WARNING)
+            self.isCleaning = false
+            if self.state == State.WORKING then
+                return self:working(state)
+            elseif self.state == State.GOING_TO_DIRT then
+                return self:reachDirtPosition(state)
+            elseif self.state == State.OBSTACLE_ENCOUNTERED then
+                return self:handleObstacle(state)
+            else
+                logger.printToConsole('[ROOM_CLEANER] Unknown state: ' .. self.state, LogLevel.WARNING)
+                logger.printTo('[ROOM_CLEANER] Unknown state: ' .. self.state, LogLevel.WARNING)
+            end
         end
     end,
 
@@ -164,15 +168,28 @@ RoomCleaner = {
     --[[ --------- HANDLE DIRTY CELL ---------- ]]
 
     handleDirtyCell = function (self, state)
-        local dirtPositions = detectDirtyPositions(
-            state,
-            self.map,
-            self.lastKnownPosition,
-            self.oldDirection
-        )
-        for i = 1, #dirtPositions do
-            self.planner:setCellAsDirty(dirtPositions[i])
-            self.map:setCellAsDirty(dirtPositions[i])
+        if not self.isCleaning then
+
+            local newPosition = self.moveExecutioner:handleStopMove(state)
+            if newPosition ~= self.map.position then
+                self.map.position = newPosition
+                self.lastKnownPosition = newPosition
+                self.map:setCellAsClean(newPosition)
+                self.planner:setCellAsClean(newPosition)
+                self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
+            end
+
+            local dirtPositions = detectDirtyPositions(
+                state,
+                self.map,
+                self.map.position,
+                self.oldDirection
+            )
+            for i = 1, #dirtPositions do
+                self.planner:setCellAsDirty(dirtPositions[i])
+                self.map:setCellAsDirty(dirtPositions[i])
+            end
+            self.isCleaning = true
         end
         return RobotAction:new({
             hasToClean = true,

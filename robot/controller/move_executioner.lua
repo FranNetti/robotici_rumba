@@ -198,7 +198,7 @@ local MoveExecutioner = {
         end
         return {
             isObstacleEncountered = false,
-            isMoveActionNotFinished = true,
+            isMoveActionFinished = true,
             position = currentPosition
         }
     end,
@@ -566,6 +566,40 @@ local MoveExecutioner = {
             end
         end
     end,
+
+    --[[ --------- HANDLE STOP MOVE ---------- ]]
+
+    handleStopMove = function (self, state)
+        local isTurningLeft = state.wheels.velocity_left == -robot_parameters.robotNotTurningTyreSpeed
+            and state.wheels.velocity_right ~= 0
+        local isTurningRight = state.wheels.velocity_right == -robot_parameters.robotNotTurningTyreSpeed
+            and state.wheels.velocity_left ~= 0
+        local speed = state.wheels.velocity_left
+        if state.wheels.velocity_right > speed then
+            speed = state.wheels.velocity_right
+        end
+        local currentDirection = controller_utils.discreteDirection(state.robotDirection)
+
+        if isTurningLeft or isTurningRight or speed == 0 then
+            return self.map.position
+        else
+            updateStraightDistanceTravelled(self, state, currentDirection)
+            local distanceTravelled = getDistanceTravelled(self, currentDirection)
+            if speed > 0 and distanceTravelled >= robot_parameters.squareSideDimension then
+                updateDistanceTravelled(self, currentDirection, -robot_parameters.squareSideDimension)
+                removeFirstAction(self)
+                self.oldDirection = currentDirection
+                return MoveAction.nextPosition(self.map.position, currentDirection, MoveAction.GO_AHEAD)
+            elseif speed < 0 and distanceTravelled <= 0 then
+                updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
+                removeFirstAction(self)
+                self.oldDirection = currentDirection
+                return MoveAction.nextPosition(self.map.position, currentDirection, MoveAction.GO_BACK)
+            else
+                return self.map.position
+            end
+        end
+    end
 
 }
 
