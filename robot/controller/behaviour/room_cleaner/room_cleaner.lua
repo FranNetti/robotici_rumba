@@ -26,10 +26,10 @@ local function isRobotNearLastKnownPosition(oldPosition, newPosition)
 end
 
 local function getFirstDirtyCell(map, dirtPositionsToSkip)
-    local length = #map
+    local length = #map.map
     dirtPositionsToSkip = dirtPositionsToSkip or Set:new{}
     for i = 0, length do
-        local rowLength = #map[i]
+        local rowLength = #map.map[i]
         for j = 0, rowLength do
             local position = Position:new(i, j)
             if map:getCell(position) == CellStatus.DIRTY and not dirtPositionsToSkip:contain(position) then
@@ -170,6 +170,11 @@ RoomCleaner = {
     handleDirtyCell = function (self, state)
         if not self.isCleaning then
 
+            logger.print(
+                '[ROOM_CLEANER] Detected dirt in cell ' .. self.map.position:toString(),
+                LogLevel.INFO
+            )
+
             local newPosition = self.moveExecutioner:handleStopMove(state)
             if newPosition ~= self.map.position then
                 self.map.position = newPosition
@@ -186,7 +191,9 @@ RoomCleaner = {
                 self.oldDirection
             )
             for i = 1, #dirtPositions do
-                self.planner:setCellAsDirty(dirtPositions[i])
+                if self.planner ~= nil then
+                    self.planner:setCellAsDirty(dirtPositions[i])
+                end
                 self.map:setCellAsDirty(dirtPositions[i])
             end
             self.isCleaning = true

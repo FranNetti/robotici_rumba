@@ -1,6 +1,8 @@
 local commons = require('util.commons')
 local logger = require('util.logger')
 
+local BRUSH_CLEAN_FREQUENCY = 10
+
 Actuators = {}
 
 Actuators.Brush = {
@@ -22,11 +24,21 @@ Actuators.Brush = {
     clean = function(self, position)
         local length = #self.areaList
         for i=1,length do
-            if commons.positionInDirtArea(position, self.areaList[i]) then
+            local area = self.areaList[i]
+            if commons.positionInDirtArea(position, area) then
                 logger.print("-- Rumba is cleaning --", logger.LogLevel.INFO)
-                self.areaList[i].dirtQuantity = self.areaList[i].dirtQuantity - 1
-                if self.areaList[i].dirtQuantity == 0 then
-                    table.remove(self.areaList, i)
+
+                if area.counter == nil then
+                    area.counter = 1
+                else
+                    area.counter = area.counter + 1
+                end
+
+                if area.counter % BRUSH_CLEAN_FREQUENCY == 0 then
+                    area.dirtQuantity = area.dirtQuantity - 1
+                    if area.dirtQuantity <= 0 then
+                        table.remove(self.areaList, i)
+                    end
                 end
                 return
             end

@@ -111,7 +111,7 @@ Sensors.DirtDetector = {
         local length = #self.areaList
         for i=1,length do
             if commons.positionInDirtArea(position, self.areaList[i]) then
-                logger.print("|| Dirt detected dirt in " .. position:toString() .. " ||", logger.LogLevel.INFO)
+                logger.printToConsole("|| Dirt detected dirt in " .. position:toString() .. " ||")
                 return true
             end
         end

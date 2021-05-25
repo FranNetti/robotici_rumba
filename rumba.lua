@@ -8,23 +8,15 @@ local logger = require('util.logger')
 local RobotState = require('robot.commons').State
 local Map = require('robot.controller.map.map')
 
-local Color, Position, DirtArea = commons.Color, commons.Position, commons.DirtArea
+local Color, Position = commons.Color, commons.Position
 local Subsumption = require('robot.controller.subsumption')
-local RobotAdvance = require('robot.controller.behaviour.robot_advance')
+local RobotAdvance = require('robot.controller.behaviour.robot_advance.robot_advance')
 local CollisionAvoidance = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 local RoomCoverage = require('robot.controller.behaviour.room_coverage.room_coverage')
+local RoomCleaner = require('robot.controller.behaviour.room_cleaner.room_cleaner')
 
 local INITIAL_ROOM_TEMPERATURE = 12
 logger.level = logger.LogLevel.INFO
-
-
-local dirt = {
-	DirtArea:new(
-		Position:new(0,0),
-		Position:new(1, -1),
-		3
-	)
-}
 
 local temperatureSensor
 local dirtDetector
@@ -34,9 +26,13 @@ local brush
 local robotController
 local robotMap
 
+local firstStep = true
+
 local function setupWorkspace()
 	robot.wheels.set_velocity(0,0)
 	robot.leds.set_all_colors(Color.BLACK)
+	-------
+	local dirt = commons.generateRandomDirtAreas()
 	-------
 	temperatureSensor = sensors.TemperatureSensor:new(INITIAL_ROOM_TEMPERATURE)
 	dirtDetector = sensors.DirtDetector:new(dirt)
@@ -47,7 +43,8 @@ local function setupWorkspace()
 	robotController = Subsumption:new {
 		RobotAdvance:new(),
 		CollisionAvoidance:new(),
-		RoomCoverage:new(robotMap)
+		RoomCoverage:new(robotMap),
+		RoomCleaner:new(robotMap),
 	}
 	-------
 	logger.stringify(robot)
@@ -60,6 +57,18 @@ function init()
 end
 
 function step()
+
+	if firstStep then
+		logger.print('Dirt areas created: ', logger.LogLevel.INFO)
+		if #dirtDetector.areaList == 0 then
+			logger.print('NONE', logger.LogLevel.INFO)
+		else
+			for i = 1, #dirtDetector.areaList do
+				logger.print(dirtDetector.areaList[i]:toString(), logger.LogLevel.INFO)
+			end
+		end
+		firstStep = false
+	end
 
 	local position = Position:new(
 		robot.positioning.position.x,
