@@ -24,7 +24,7 @@ commons.Position = {
     end;
 
     toString = function (self)
-        return 'Position(' .. self.lat ..'||' .. self.lng .. ')'
+        return string.format("Position(%.3f||%.3f)", self.lat, self.lng)
     end,
 
     __eq = function (a,b)
@@ -56,9 +56,10 @@ commons.DirtArea = {
     end,
 
     toString = function (self)
-        return 'DirtArea(topLeft: ' .. self.topLeft:toString()
-            .. "| bottomRight: " .. self.bottomRight:toString()
-            .. "| dirtQuantity: " .. self.dirtQuantity .. ")"
+        return "DirtArea"
+            .. "\n---topLeft: " .. self.topLeft:toString()
+            .. "\n---bottomRight: " .. self.bottomRight:toString()
+            .. "\n---dirtQuantity: " .. self.dirtQuantity
     end
 }
 commons.Direction = {

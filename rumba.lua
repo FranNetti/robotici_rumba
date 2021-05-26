@@ -26,13 +26,14 @@ local brush
 local robotController
 local robotMap
 
-local firstStep = true
+local firstStep
 
 local function setupWorkspace()
 	robot.wheels.set_velocity(0,0)
 	robot.leds.set_all_colors(Color.BLACK)
 	-------
 	local dirt = commons.generateRandomDirtAreas()
+	firstStep = true
 	-------
 	temperatureSensor = sensors.TemperatureSensor:new(INITIAL_ROOM_TEMPERATURE)
 	dirtDetector = sensors.DirtDetector:new(dirt)

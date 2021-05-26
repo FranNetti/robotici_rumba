@@ -180,7 +180,9 @@ RoomCleaner = {
                 self.map.position = newPosition
                 self.lastKnownPosition = newPosition
                 self.map:setCellAsClean(newPosition)
-                self.planner:setCellAsClean(newPosition)
+                if self.planner ~= nil then
+                    self.planner:setCellAsClean(newPosition)
+                end
                 self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
             end
 
