@@ -35,17 +35,17 @@ end
 
 local function updateDistanceTravelled(moveExecutioner, currentDirection, offset)
     if currentDirection == Direction.SOUTH or currentDirection == Direction.NORTH then
-        moveExecutioner.map:updateVerticalOffset(offset)
+        moveExecutioner.map:updateVerticalOffset(offset, currentDirection)
     else
-        moveExecutioner.map:updateHorizontalOffset(offset)
+        moveExecutioner.map:updateHorizontalOffset(offset, currentDirection)
     end
 end
 
 local function setDistanceTravelled(moveExecutioner, currentDirection, value)
     if currentDirection == Direction.SOUTH or currentDirection == Direction.NORTH then
-        moveExecutioner.map:setVerticalOffset(value)
+        moveExecutioner.map:setVerticalOffset(value, currentDirection)
     else
-        moveExecutioner.map:setHorizontalOffset(value)
+        moveExecutioner.map:setHorizontalOffset(value, currentDirection)
     end
 end
 
@@ -75,9 +75,9 @@ end
 
 local function getDistanceTravelled(moveExecutioner, currentDirection)
     if currentDirection == Direction.SOUTH or currentDirection == Direction.NORTH then
-        return moveExecutioner.map.verticalOffset
+        return moveExecutioner.map:getVerticalOffset(currentDirection)
     else
-        return moveExecutioner.map.horizontalOffset
+        return moveExecutioner.map:getHorizontalOffset(currentDirection)
     end
 end
 
@@ -188,7 +188,7 @@ local MoveExecutioner = {
                 setDistanceTravelled(self, currentDirection, robot_parameters.distanceToGoBackWhenHome)
             end
 
-            logger.print(self.map.verticalOffset .. "||" .. self.map.horizontalOffset)
+            logger.print(self.map.verticalOffset.offset .. "||" .. self.map.horizontalOffset.offset)
             if result.isMoveActionFinished then
                 logger.print("------------")
                 removeFirstAction(self)
@@ -478,7 +478,7 @@ local MoveExecutioner = {
         local currentPosition = self.map.position
         local currentAction = self.actions[1]
         local result = nil
-        logger.print(self.map.verticalOffset .. "||" .. self.map.horizontalOffset)
+        logger.print(self.map.verticalOffset.offset .. "||" .. self.map.horizontalOffset.offset)
         if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
             result = self:handleCancelStraightMove(state, controller_utils.discreteDirection(state.robotDirection))
         elseif currentAction == MoveAction.TURN_LEFT then
@@ -531,19 +531,24 @@ local MoveExecutioner = {
 
     handleCancelTurnMove = function (self, turnDirection, state, currentPosition, currentDirection, isRobotTurning)
         if isRobotTurning and state.robotDirection.direction == self.oldDirection then
-            --[[
-                It's important to obtain a positive value for the distance travelled in order to follow the algorithm
-                logics. The position must be moved to the previous cell too.
-            ]]
-            updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
-            return {
-                isMoveActionFinished = true,
-                position = MoveAction.nextPosition(
-                    currentPosition,
-                    currentDirection,
-                    MoveAction.GO_BACK
-                )
-            }
+            if currentPosition == Position:new(0,0) then
+                changeAction(self, 1, MoveAction.GO_AHEAD)
+                return { action = RobotAction.goBack({}, {1, 2}) }
+            else
+                --[[
+                    It's important to obtain a positive value for the distance travelled in order to follow the algorithm
+                    logics. The position must be moved to the previous cell too.
+                ]]
+                updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
+                return {
+                    isMoveActionFinished = true,
+                    position = MoveAction.nextPosition(
+                        currentPosition,
+                        currentDirection,
+                        MoveAction.GO_BACK
+                    )
+                }
+            end
         else
             if turnDirection == MoveAction.TURN_LEFT then
                 return {

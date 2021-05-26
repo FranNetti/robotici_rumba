@@ -1,5 +1,5 @@
 local commons = require('util.commons')
-local Position = commons.Position
+local Position, Direction = commons.Position, commons.Direction
 local CellStatus = require('robot.controller.map.cell_status')
 
 Map = {
@@ -7,8 +7,8 @@ Map = {
     new = function(self)
         local o = {
             position = Position:new(0, 0),
-            verticalOffset = 0,
-            horizontalOffset = 0,
+            verticalOffset = {offset = 0, direction = Direction.NORTH},
+            horizontalOffset = {offset = 0, direction = Direction.WEST},
             map = {[0] = {[0] = CellStatus.CLEAN}},
             isPerimeterIdentified = false,
         }
@@ -44,20 +44,46 @@ Map = {
         return self:getCell(self.position)
     end,
 
-    updateVerticalOffset = function (self, offset)
-        self.verticalOffset = self.verticalOffset + offset
+    updateVerticalOffset = function (self, offset, direction)
+        if direction == self.verticalOffset.direction then
+            self.verticalOffset.offset = self.verticalOffset.offset + offset
+        else
+            self.verticalOffset.offset = -self.verticalOffset.offset + offset
+            self.verticalOffset.direction = direction
+        end
     end,
 
-    updateHorizontalOffset = function (self, offset)
-        self.horizontalOffset = self.horizontalOffset + offset
+    updateHorizontalOffset = function (self, offset, direction)
+        if direction == self.horizontalOffset.direction then
+            self.horizontalOffset.offset = self.horizontalOffset.offset + offset
+        else
+            self.horizontalOffset.offset = -self.horizontalOffset.offset + offset
+            self.horizontalOffset.direction = direction
+        end
     end,
 
-    setVerticalOffset = function (self, offset)
-        self.verticalOffset = offset
+    setVerticalOffset = function (self, offset, direction)
+        self.verticalOffset = { offset = offset, direction = direction }
     end,
 
-    setHorizontalOffset = function (self, offset)
-        self.horizontalOffset = offset
+    setHorizontalOffset = function (self, offset, direction)
+        self.horizontalOffset = { offset = offset, direction = direction }
+    end,
+
+    getVerticalOffset = function (self, direction)
+        if direction == self.verticalOffset.direction then
+            return self.verticalOffset.offset
+        else
+            return -self.verticalOffset.offset
+        end
+    end,
+
+    getHorizontalOffset = function (self, direction)
+        if direction == self.horizontalOffset.direction then
+            return self.horizontalOffset.offset
+        else
+            return -self.horizontalOffset.offset
+        end
     end,
 
     updatePosition = function (self, newPosition)

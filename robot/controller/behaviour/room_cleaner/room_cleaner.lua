@@ -50,9 +50,9 @@ local function detectDirtyPositions(state, map, currentPositiom, oldDirection)
     if state.wheels.velocity_right > speed then
         speed = state.wheels.velocity_right
     end
-    local distanceTravelled = map.verticalOffset
+    local distanceTravelled = map:getVerticalOffset(currentDirection)
     if currentDirection == Direction.EAST or currentDirection == Direction.WEST then
-        distanceTravelled = map.horizontalOffset
+        distanceTravelled = map:getHorizontalOffset(currentDirection)
     end
 
     if (isTurningLeft or isTurningRight) and currentDirection == oldDirection then
