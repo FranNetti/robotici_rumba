@@ -169,13 +169,13 @@ RoomCleaner = {
 
     handleDirtyCell = function (self, state)
         if not self.isCleaning then
+            local newPosition = self.moveExecutioner:handleStopMove(state)
 
             logger.print(
                 '[ROOM_CLEANER] Detected dirt in cell ' .. self.map.position:toString(),
                 LogLevel.INFO
             )
 
-            local newPosition = self.moveExecutioner:handleStopMove(state)
             if newPosition ~= self.map.position then
                 self.map.position = newPosition
                 self.lastKnownPosition = newPosition
@@ -222,8 +222,7 @@ RoomCleaner = {
         if dirtPosition ~= nil then
             local currentDepth = #self.map.map
             local dirtPositionsToSkip = Set:new{}
-            self.planner = Planner:new(self.map)
-            self.planner:addNewDiagonalPoint(currentDepth)
+            self.planner = Planner:new(self.map.map)
             while dirtPosition ~= nil do
                 local success = self:computeActionsToDirtCell(state, dirtPosition, currentDepth)
                 if success then

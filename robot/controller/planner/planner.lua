@@ -7,6 +7,61 @@ local CellStatus = require('robot.controller.map.cell_status')
 
 local logger = require('util.logger')
 
+local function addNewDiagonalPoint(planner, map, currentDepth, depth)
+    local depthDifference = depth - currentDepth
+    planner.graph:addVertexIfNotExists(planner.encodeCoordinates(depth, depth))
+
+    if depthDifference > 0 then
+        for i = 0, currentDepth do
+            for j = currentDepth + 1, depth do
+                local cell = map[i][j-1]
+                --[[
+                    link the new cell only if the one to the right isn't an
+                    obstacle nor exists
+                ]]
+                if cell == nil or cell ~= CellStatus.OBSTACLE then
+                    planner.graph:addEdge(
+                        planner.encodeCoordinates(i, j - 1),
+                        planner.encodeCoordinates(i, j)
+                    )
+                end
+                planner.graph:addEdge(
+                    planner.encodeCoordinates(i, j),
+                    planner.encodeCoordinates(i + 1, j)
+                )
+            end
+        end
+
+        for i= currentDepth + 1, depth do
+            local isFirstRow = i == currentDepth + 1
+            if not isFirstRow or map[i - 1][0] ~= CellStatus.OBSTACLE then
+                planner.graph:addEdge(
+                    planner.encodeCoordinates(i - 1, 0),
+                    planner.encodeCoordinates(i, 0)
+                )
+            end
+            for j = 1, depth do
+                if i ~= j and isFirstRow and map[i - 1][j] ~= CellStatus.OBSTACLE then
+                    planner.graph:addEdge(
+                        planner.encodeCoordinates(i - 1, j),
+                        planner.encodeCoordinates(i, j)
+                    )
+                end
+                planner.graph:addEdge(
+                    planner.encodeCoordinates(i, j - 1),
+                    planner.encodeCoordinates(i, j)
+                )
+                if i ~= depth then
+                    planner.graph:addEdge(
+                        planner.encodeCoordinates(i, j),
+                        planner.encodeCoordinates(i + 1, j)
+                    )
+                end
+            end
+        end
+    end
+end
+
 Planner = {
     new = function(self, map)
         local vertices = luaList.create()
@@ -21,63 +76,14 @@ Planner = {
         }
         setmetatable(o, self)
         self.__index = self
+        if #map > 0 then
+            addNewDiagonalPoint(o, map, 0, #map)
+        end
         return o
     end,
 
     addNewDiagonalPoint = function(self, depth)
-        local currentDepth = #self.map
-        local depthDifference = depth - currentDepth
-        self.graph:addVertexIfNotExists(self.encodeCoordinates(depth, depth))
-
-        if depthDifference > 0 then
-            for i = 0, currentDepth do
-                for j = currentDepth + 1, depth do
-                    local cell = self.map[i][j-1]
-                    --[[
-                        link the new cell only if the one to the right isn't an
-                        obstacle nor exists
-                    ]]
-                    if cell == nil or cell ~= CellStatus.OBSTACLE then
-                        self.graph:addEdge(
-                            self.encodeCoordinates(i, j - 1),
-                            self.encodeCoordinates(i, j)
-                        )
-                    end
-                    self.graph:addEdge(
-                        self.encodeCoordinates(i, j),
-                        self.encodeCoordinates(i + 1, j)
-                    )
-                end
-            end
-
-            for i= currentDepth + 1, depth do
-                local isFirstRow = i == currentDepth + 1
-                if not isFirstRow or self.map[i - 1][0] ~= CellStatus.OBSTACLE then
-                    self.graph:addEdge(
-                        self.encodeCoordinates(i - 1, 0),
-                        self.encodeCoordinates(i, 0)
-                    )
-                end
-                for j = 1, depth do
-                    if i ~= j and isFirstRow and self.map[i - 1][j] ~= CellStatus.OBSTACLE then
-                        self.graph:addEdge(
-                            self.encodeCoordinates(i - 1, j),
-                            self.encodeCoordinates(i, j)
-                        )
-                    end
-                    self.graph:addEdge(
-                        self.encodeCoordinates(i, j - 1),
-                        self.encodeCoordinates(i, j)
-                    )
-                    if i ~= depth then
-                        self.graph:addEdge(
-                            self.encodeCoordinates(i, j),
-                            self.encodeCoordinates(i + 1, j)
-                        )
-                    end
-                end
-            end
-        end
+        addNewDiagonalPoint(self, self.map, #self.map, depth)
     end,
 
     removeFirstAction = function (self)
