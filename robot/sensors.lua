@@ -7,11 +7,12 @@ local BATTERY_STEP_INCREASE_FREQUENCY = 20
 -- temperature sensor constants
 local TEMPERATURE_STEP_CHANGE_FREQUENCY = 50
 local MAX_TEMPERATURE_CHANGE = 5
-local TEMPERATURE_INCREASE_PROBABILITY = 0.8
-local MAX_TEMPERATURE_IN_ROOM = 60;
+local TEMPERATURE_INCREASE_PROBABILITY = 0.7
+local MAX_TEMPERATURE_IN_ROOM = 35;
 
 local commons = require('util.commons')
 local logger = require('util.logger')
+local LogLevel = logger.LogLevel
 local Direction = commons.Direction
 
 Sensors = {}
@@ -81,11 +82,14 @@ Sensors.TemperatureSensor = {
             else
                 self.temperature = self.temperature - newValue
             end
-        end
-        if self.temperature > MAX_TEMPERATURE_IN_ROOM then
-            self.temperature = MAX_TEMPERATURE_IN_ROOM
-        elseif self.temperature < 0 then
-            self.temperature = 0
+
+            if self.temperature > MAX_TEMPERATURE_IN_ROOM then
+                self.temperature = MAX_TEMPERATURE_IN_ROOM
+            elseif self.temperature < 0 then
+                self.temperature = 0
+            end
+
+            logger.print("---- Room temperature is now " .. self.temperature .. " ----", LogLevel.INFO)
         end
     end
 }

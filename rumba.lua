@@ -14,6 +14,7 @@ local RobotAdvance = require('robot.controller.behaviour.robot_advance.robot_adv
 local CollisionAvoidance = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 local RoomCoverage = require('robot.controller.behaviour.room_coverage.room_coverage')
 local RoomCleaner = require('robot.controller.behaviour.room_cleaner.room_cleaner')
+local RoomMonitor = require('robot.controller.behaviour.room_monitor.room_monitor')
 
 local INITIAL_ROOM_TEMPERATURE = 12
 logger.level = logger.LogLevel.INFO
@@ -46,6 +47,7 @@ local function setupWorkspace()
 		CollisionAvoidance:new(),
 		RoomCoverage:new(robotMap),
 		RoomCleaner:new(robotMap),
+		RoomMonitor:new(robotMap),
 	}
 	-------
 	logger.stringify(robot)
