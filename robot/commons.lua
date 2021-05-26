@@ -6,9 +6,9 @@ Robot.State = {
 
     ---create new state
     ---@param data table {
-    ---     battery_level: int,
-    ---     room_temperature: double,
-    ---     robot_direction: { direction: Direction, angle: double },
+    ---     batteryLevel: int,
+    ---     roomTemperature: double,
+    ---     robotDirection: { direction: Direction, angle: double },
     ---     isDirtDetected: bool,
     ---     wheels: robot.wheels,
     ---     proximity: robot.proximity,
@@ -46,49 +46,44 @@ Robot.Action = {
         return o
     end;
 
-    turnLeft = function (levelsToSubsume)
-        return Robot.Action:new({
-            speed = {
-                left = robot_parameters.robotNotTurningTyreSpeed,
-                right = robot_parameters.robotTurningSpeed
-            }
-        }, levelsToSubsume)
+    turnLeft = function (parameters, levelsToSubsume)
+        parameters.speed = {
+            left = robot_parameters.robotNotTurningTyreSpeed,
+            right = robot_parameters.robotTurningSpeed
+        }
+        return Robot.Action:new(parameters, levelsToSubsume)
     end,
 
-    turnRight = function (levelsToSubsume)
-        return Robot.Action:new({
-            speed = {
-                left = robot_parameters.robotTurningSpeed,
-                right = robot_parameters.robotNotTurningTyreSpeed
-            }
-        }, levelsToSubsume)
+    turnRight = function (parameters, levelsToSubsume)
+        parameters.speed = {
+            left = robot_parameters.robotTurningSpeed,
+            right = robot_parameters.robotNotTurningTyreSpeed
+        }
+        return Robot.Action:new(parameters, levelsToSubsume)
     end,
 
-    goAhead = function (levelsToSubsume)
-        return Robot.Action:new({
-            speed = {
-                left = robot_parameters.robotForwardSpeed,
-                right = robot_parameters.robotForwardSpeed
-            }
-        }, levelsToSubsume)
+    goAhead = function (parameters, levelsToSubsume)
+        parameters.speed = {
+            left = robot_parameters.robotForwardSpeed,
+            right = robot_parameters.robotForwardSpeed
+        }
+        return Robot.Action:new(parameters, levelsToSubsume)
     end,
 
-    goBack = function (levelsToSubsume)
-        return Robot.Action:new({
-            speed = {
-                left = robot_parameters.robotReverseSpeed,
-                right = robot_parameters.robotReverseSpeed
-            }
-        }, levelsToSubsume)
+    goBack = function (parameters, levelsToSubsume)
+        parameters.speed = {
+            left = robot_parameters.robotReverseSpeed,
+            right = robot_parameters.robotReverseSpeed
+        }
+        return Robot.Action:new(parameters, levelsToSubsume)
     end,
 
-    stayStill = function (levelsToSubsume)
-        return Robot.Action:new({
-            speed = {
-                left = 0,
-                right = 0
-            }
-        }, levelsToSubsume)
+    stayStill = function (parameters, levelsToSubsume)
+        parameters.speed = {
+            left = 0,
+            right = 0
+        }
+        return Robot.Action:new(parameters, levelsToSubsume)
     end,
 
     __add = function (a,b)

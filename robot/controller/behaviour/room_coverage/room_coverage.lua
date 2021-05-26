@@ -72,7 +72,7 @@ RoomCoverage = {
         if self.map.position ~= Position:new(0,0) then
             self.state = State.RECOVERY
             self.oldState = State.GOING_HOME
-            return RobotAction.stayStill({1})
+            return RobotAction.stayStill({}, {1})
         end
 
 
@@ -126,7 +126,7 @@ RoomCoverage = {
         end
 
         logger.printToConsole(self.map:toString())
-        return RobotAction.stayStill({1})
+        return RobotAction.stayStill({}, {1})
     end,
 
     --[[ --------- EXPLORING ---------- ]]
@@ -141,7 +141,7 @@ RoomCoverage = {
         ]]
         if self.lastKnownPosition ~= self.map.position then
             self.state = State.RECOVERY
-            return RobotAction.stayStill({1})
+            return RobotAction.stayStill({}, {1})
         end
 
         local result = self.moveExecutioner:doNextMove(state)
@@ -158,7 +158,7 @@ RoomCoverage = {
 
             self.map:setCellAsObstacle(result.obstaclePosition)
             self.planner:setCellAsObstacle(result.obstaclePosition)
-            return RobotAction:new{}
+            return RobotAction:new({})
         elseif result.isMoveActionFinished then
             self.map:setCellAsClean(result.position)
             self.planner:setCellAsClean(result.position)
@@ -174,11 +174,11 @@ RoomCoverage = {
             if nextMove == MoveAction.GO_AHEAD then
                 return RobotAction:new({})
             elseif nextMove == MoveAction.GO_BACK or nextMove == MoveAction.GO_BACK_BEFORE_TURNING then
-                return RobotAction.goBack({1})
+                return RobotAction.goBack({}, {1})
             elseif nextMove == MoveAction.TURN_LEFT then
-                return RobotAction.turnLeft({1})
+                return RobotAction.turnLeft({}, {1})
             elseif nextMove == MoveAction.TURN_RIGHT then
-                return RobotAction.turnRight({1})
+                return RobotAction.turnRight({}, {1})
             end
         elseif self.state == State.EXPLORING then
             self.state = State.TARGET_REACHED
@@ -187,7 +187,7 @@ RoomCoverage = {
         elseif self.state == State.GOING_HOME then
             self.state = State.EXPLORED
         end
-        return RobotAction.stayStill({1})
+        return RobotAction.stayStill({}, {1})
     end,
 
     --[[ ---------- TARGET REACHED --------- ]]
@@ -207,7 +207,7 @@ RoomCoverage = {
             )
             self.state = State.GOING_HOME
         end
-        return RobotAction.stayStill({1})
+        return RobotAction.stayStill({}, {1})
     end,
 
     --[[ --------- HANDLE OBSTACLE ---------- ]]
@@ -260,7 +260,7 @@ RoomCoverage = {
                     self.state = State.TARGET_REACHED
                 end
             end
-            return RobotAction.stayStill({1})
+            return RobotAction.stayStill({}, {1})
         else
             return result.action
         end
@@ -286,7 +286,7 @@ RoomCoverage = {
                         self.moveExecutioner:setActions(actions)
                         self.state = State.EXPLORING
                         self.target = cell
-                        return RobotAction.stayStill({1})
+                        return RobotAction.stayStill({}, {1})
                     else
                         self.planner:setCellAsObstacle(cell)
                         self.map:setCellAsObstacle(cell)
@@ -309,7 +309,7 @@ RoomCoverage = {
             )
             self.state = State.GOING_HOME
         end
-        return RobotAction.stayStill({1})
+        return RobotAction.stayStill({}, {1})
     end,
 
     --[[ --------- RECOVERY ---------- ]]
@@ -373,7 +373,7 @@ RoomCoverage = {
         end
 
         self.lastKnownPosition = self.map.position
-        return RobotAction.stayStill({1})
+        return RobotAction.stayStill({}, {1})
     end,
 
     --[[ --------- EXPLORED ---------- ]]
@@ -385,7 +385,7 @@ RoomCoverage = {
         if self.map.position ~= Position:new(0,0) then
             self.state = State.PERIMETER_IDENTIFIED
         end
-        return RobotAction.stayStill({1})
+        return RobotAction.stayStill({}, {1})
     end,
 }
 

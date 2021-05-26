@@ -41,9 +41,9 @@ local function getFirstDirtyCell(map, dirtPositionsToSkip)
 end
 
 local function detectDirtyPositions(state, map, currentPositiom, oldDirection)
-    local isTurningRight = state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
+    local isTurningLeft = state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
         and state.wheels.velocity_right ~= 0
-    local isTurningLeft = state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
+    local isTurningRight = state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
         and state.wheels.velocity_left ~= 0
     local currentDirection = controller_utils.discreteDirection(state.robotDirection)
     local speed = state.wheels.velocity_left
@@ -200,10 +200,9 @@ RoomCleaner = {
             end
             self.isCleaning = true
         end
-        return RobotAction:new({
+        return RobotAction.stayStill({
             hasToClean = true,
-            leds = { switchedOn = true, color = Color.WHITE },
-            speed = { left = 0, right = 0}
+            leds = { switchedOn = true, color = Color.WHITE }
         }, {1, 3})
     end,
 
@@ -230,7 +229,7 @@ RoomCleaner = {
                 if success then
                     self.target = dirtPosition
                     self.state = State.GOING_TO_DIRT
-                    return RobotAction.stayStill({1,3})
+                    return RobotAction.stayStill({}, {1,3})
                 else
                     --[[
                         if the cell can't be currently reached it is added to this set
@@ -321,11 +320,11 @@ RoomCleaner = {
             if nextMove == MoveAction.GO_AHEAD then
                 return RobotAction:new({}, {3})
             elseif nextMove == MoveAction.GO_BACK or nextMove == MoveAction.GO_BACK_BEFORE_TURNING then
-                return RobotAction.goBack({1, 3})
+                return RobotAction.goBack({}, {1, 3})
             elseif nextMove == MoveAction.TURN_LEFT then
-                return RobotAction.turnLeft({1, 3})
+                return RobotAction.turnLeft({}, {1, 3})
             elseif nextMove == MoveAction.TURN_RIGHT then
-                return RobotAction.turnRight({1, 3})
+                return RobotAction.turnRight({}, {1, 3})
             end
         else
             --[[
@@ -362,7 +361,7 @@ RoomCleaner = {
             if actions ~= nil and #actions > 0 then
                 self.moveExecutioner:setActions(actions)
                 self.state = State.GOING_TO_DIRT
-                return RobotAction.stayStill({1, 3})
+                return RobotAction.stayStill({}, {1, 3})
             elseif self.map.position == self.target then
                 return self:goToFirstDirtyCell(state)
             else

@@ -358,9 +358,9 @@ local MoveExecutioner = {
                 }
             end
             elseif turnDirection == MoveAction.TURN_LEFT then
-                return { action = RobotAction.turnLeft({1}) }
+                return { action = RobotAction.turnLeft({}, {1}) }
             else
-                return { action = RobotAction.turnRight({1}) }
+                return { action = RobotAction.turnRight({}, {1}) }
             end
         else
             --[[
@@ -368,7 +368,7 @@ local MoveExecutioner = {
                 that it goes back by a half of the cell dimension
             ]]
             addActionToHead(self, MoveAction.GO_BACK_BEFORE_TURNING)
-            return { action = RobotAction.goBack({1}) }
+            return { action = RobotAction.goBack({}, {1}) }
         end
     end,
 
@@ -412,7 +412,7 @@ local MoveExecutioner = {
                 changeAction(self, 1, MoveAction.GO_BACK_BEFORE_TURNING)
                 return {
                     position = newPosition,
-                    action = RobotAction.goBack(levelsToSubsume)
+                    action = RobotAction.goBack({}, levelsToSubsume)
                 }
             else
                 return {
@@ -432,7 +432,7 @@ local MoveExecutioner = {
                 )
             }
         else
-            return { action = RobotAction.goBack(levelsToSubsume) }
+            return { action = RobotAction.goBack({}, levelsToSubsume) }
         end
     end,
 
@@ -462,7 +462,7 @@ local MoveExecutioner = {
         elseif getDistanceTravelled(self, currentDirection) <= -robot_parameters.squareSideDimension / 2 then
             return { isMoveActionFinished = true }
         else
-            return { action = RobotAction.goBack(levelsToSubsume) }
+            return { action = RobotAction.goBack({}, levelsToSubsume) }
         end
     end,
 
@@ -501,7 +501,7 @@ local MoveExecutioner = {
         elseif (move == MoveAction.GO_BACK or move == MoveAction.GO_BACK_BEFORE_TURNING) and distanceTravelled >= 0 then
             return { isMoveActionFinished = true }
         elseif move == MoveAction.GO_AHEAD then
-            return { action = RobotAction.goBack({1, 2}) }
+            return { action = RobotAction.goBack({}, {1, 2}) }
         else
             return { action = RobotAction:new({}, {2}) }
         end

@@ -40,7 +40,7 @@ RobotAdvance = {
         local direction = state.robotDirection.direction
         local angle = state.robotDirection.angle
         if inDirectionSpace(angle) then
-            return Action.goAhead()
+            return Action.goAhead({})
         elseif direction == Direction.NORTH_WEST
           or (direction == Direction.NORTH and angle > directionOffsets.NORTH[6])
           or (direction == Direction.WEST and angle < directionOffsets.WEST[3]) then

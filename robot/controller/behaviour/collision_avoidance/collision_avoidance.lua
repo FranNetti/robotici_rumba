@@ -39,22 +39,19 @@ CollisionAvoidance = {
             printObstacleDetected('in front', state.proximity, 1, 2)
             printObstacleDetected('in front', state.proximity, 23, 24, false)
             logger.printToConsole("----------------")
-            return Action:new({
-                speed = {left = 0, right = 0},
+            return Action.stayStill({
                 leds = {switchedOn = true, color = Color.YELLOW}
             }, {1})
         elseif self.isObjectInLeftRange(state.proximity) then
             printObstacleDetected('to the left', state.proximity, 3, 6)
             logger.printToConsole("----------------")
-            return Action:new({
-                speed = {left = 0, right = 0},
+            return Action.stayStill({
                 leds = {switchedOn = true, color = Color.YELLOW}
             }, {1})
         elseif self.isObjectInRightRange(state.proximity) then
             printObstacleDetected('to the right', state.proximity, 19, 22)
             logger.printToConsole("----------------")
-            return Action:new({
-                speed = {left = 0, right = 0},
+            return Action.stayStill({
                 leds = {switchedOn = true, color = Color.YELLOW}
             }, {1})
         end
