@@ -34,11 +34,13 @@ end
 local function neighbor_nodes(theNode, graph)
 	local neighbors = {}
     local edges = graph.adjList[theNode]
-	for i = 0, edges.N - 1 do
-        if theNode ~= edges.a[i]:to() then
-			table.insert(neighbors, edges.a[i]:to())
-		elseif theNode ~= edges.a[i]:from() then
-			table.insert(neighbors, edges.a[i]:from())
+	if edges ~= nil then
+		for i = 0, edges.N - 1 do
+			if theNode ~= edges.a[i]:to() then
+				table.insert(neighbors, edges.a[i]:to())
+			elseif theNode ~= edges.a[i]:from() then
+				table.insert(neighbors, edges.a[i]:from())
+			end
 		end
     end
 	return neighbors

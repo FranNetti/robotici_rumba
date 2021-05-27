@@ -12,10 +12,8 @@ local controller_utils = require('robot.controller.utils')
 local CellStatus = require('robot.controller.map.cell_status')
 local MoveExecutioner = require('robot.controller.move_executioner')
 local Planner = require('robot.controller.planner.planner')
-local ExcludeOption = require('robot.controller.planner.exclude_option')
 
 local State = require('robot.controller.behaviour.room_cleaner.state')
-local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 
 local function isRobotNearLastKnownPosition(oldPosition, newPosition)
     return oldPosition == newPosition
@@ -77,14 +75,6 @@ local function detectDirtyPositions(state, map, currentPositiom, oldDirection)
         }
     end
     return { currentPositiom }
-end
-
-local function getExcludedOptionsByState(state)
-    local excludedOptions = Set:new{}
-    if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
-        excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT, ExcludeOption.EXCLUDE_BACK}
-    end
-    return excludedOptions
 end
 
 local function isRobotTurning(state)
@@ -245,7 +235,7 @@ RoomCleaner = {
     end,
 
     computeActionsToDirtCell = function (self, state, dirtPosition, currentDepth)
-        local excludedOptions = getExcludedOptionsByState(state)
+        local excludedOptions = controller_utils.getExcludedOptionsByState(state)
         local currentDirection = controller_utils.discreteDirection(state.robotDirection)
         local actions = self.planner:getActionsTo(
             self.map.position,
@@ -289,8 +279,6 @@ RoomCleaner = {
         local result = self.moveExecutioner:doNextMove(state)
         self.lastKnownPosition = result.position
         self.map.position = result.position
-        -- subsume no matter what the room coverage level
-        table.insert(result.action.levelsToSubsume, 3)
 
         if result.isObstacleEncountered then
             self.state = State.OBSTACLE_ENCOUNTERED
@@ -309,6 +297,8 @@ RoomCleaner = {
             self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
             return self:reachDirtPositionNextMove(state)
         else
+            -- subsume no matter what the room coverage level
+            table.insert(result.action.levelsToSubsume, 3)
             return result.action
         end
     end,
@@ -354,7 +344,7 @@ RoomCleaner = {
                 self.map.position,
                 self.target,
                 controller_utils.discreteDirection(state.robotDirection),
-                getExcludedOptionsByState(state)
+                controller_utils.getExcludedOptionsByState(state)
             )
 
             if actions ~= nil and #actions > 0 then

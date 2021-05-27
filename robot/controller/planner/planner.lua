@@ -4,8 +4,10 @@ local aStar = require('extensions.luagraphs.shortest_paths.a_star')
 
 local helpers = require('robot.controller.planner.helpers')
 local CellStatus = require('robot.controller.map.cell_status')
+local MoveAction = require('robot.controller.planner.move_action')
 
 local logger = require('util.logger')
+local Set = require('util.set')
 
 local function addNewDiagonalPoint(planner, map, currentDepth, depth)
     local depthDifference = depth - currentDepth
@@ -109,20 +111,26 @@ Planner = {
     --- Get path to a given destination
     ---@param start table Position - the position where you currently are
     ---@param destination table Position - the destination that you want to reach
+    ---@param backPosition table Position - the position right behind the starting point
     ---@param excludePositions table Set - the set of position to exclude from the path
     ---@param areNewCellsToExploreMoreImportant boolean if the cells to yet explore are more important than the ones already explored
     ---@return table list of nodes to follow to reach the destination
-    getPathTo = function (self, start, destination, excludePositions, areNewCellsToExploreMoreImportant)
-        areNewCellsToExploreMoreImportant = areNewCellsToExploreMoreImportant or true
+    getPathTo = function (self, start, destination, backPosition, excludePositions, areNewCellsToExploreMoreImportant)
+        if areNewCellsToExploreMoreImportant == nil then
+            areNewCellsToExploreMoreImportant = areNewCellsToExploreMoreImportant or true
+        end
         excludePositions = excludePositions or Set:new{}
+        backPosition = self.encodeCoordinatesFromPosition(backPosition)
 
         return self.aStar:getPath(
             self.encodeCoordinatesFromPosition(start),
             self.encodeCoordinatesFromPosition(destination),
             function (pointA, pointB)
 
-                if excludePositions:contain(pointB) or excludePositions:contain(pointA) then
-                    return helpers.MAX_PATH_COST
+                if pointA == backPosition or pointB == backPosition then
+                    return helpers.BACK_OPTION_COST
+                elseif excludePositions:contain(pointA) or excludePositions:contain(pointB) then
+                    return helpers.EXCLUDED_OPTIONS_COST
                 end
 
                 local x1, y1 = Planner.decodeCoordinates(pointA)
@@ -155,6 +163,7 @@ Planner = {
         local path = self:getPathTo(
             start,
             destination,
+            MoveAction.nextPosition(start, direction, MoveAction.GO_BACK),
             excludedPositions,
             areNewCellsToExploreMoreImportant
         )

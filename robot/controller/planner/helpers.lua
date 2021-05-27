@@ -7,7 +7,8 @@ local Direction = commons.Direction
 
 local helper = {}
 
-helper.MAX_PATH_COST = 9999999999999999
+helper.EXCLUDED_OPTIONS_COST = 9999999999
+helper.BACK_OPTION_COST = helper.EXCLUDED_OPTIONS_COST * 2
 
 function helper.determineActions(path, direction, coordinatesDecoder)
     local actions = {}

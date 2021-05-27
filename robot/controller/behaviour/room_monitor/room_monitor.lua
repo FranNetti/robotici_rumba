@@ -2,7 +2,6 @@ local Color = require('util.commons').Color
 local Position = require('util.commons').Position
 local logger = require('util.logger')
 local LogLevel = logger.LogLevel
-local Set = require('util.set')
 
 local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.controller.planner.move_action')
@@ -10,22 +9,12 @@ local robot_parameters = require('robot.parameters')
 local controller_utils = require('robot.controller.utils')
 local MoveExecutioner = require('robot.controller.move_executioner')
 local Planner = require('robot.controller.planner.planner')
-local ExcludeOption = require('robot.controller.planner.exclude_option')
 
 local State = require('robot.controller.behaviour.room_monitor.state')
-local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 
 local TEMPERATURE_THRESHOLD_UPPER_LIMIT = 30
 local TEMPERATURE_THRESHOLD_LOWER_LIMIT = 27
 local ALERT_LED_COLOR = Color.CYAN
-
-local function getExcludedOptionsByState(state)
-    local excludedOptions = Set:new{}
-    if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
-        excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT, ExcludeOption.EXCLUDE_BACK}
-    end
-    return excludedOptions
-end
 
 local function isRobotNotTurning(state)
     return not (state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
@@ -35,7 +24,7 @@ local function isRobotNotTurning(state)
 end
 
 local function computeActionsToHome(roomMonitor, state)
-    local excludedOptions = getExcludedOptionsByState(state)
+    local excludedOptions = controller_utils.getExcludedOptionsByState(state)
     local currentDirection = controller_utils.discreteDirection(state.robotDirection)
     roomMonitor.planner = Planner:new(roomMonitor.map.map)
 
@@ -48,8 +37,6 @@ local function computeActionsToHome(roomMonitor, state)
             false
         )
     )
-
-    logger.stringify(roomMonitor.moveExecutioner.actions)
 end
 
 local function handleStopMove(roomMonitor, state)
@@ -227,7 +214,7 @@ RoomMonitor = {
                     self.map.position,
                     Position:new(0,0),
                     controller_utils.discreteDirection(state.robotDirection),
-                    getExcludedOptionsByState(state),
+                    controller_utils.getExcludedOptionsByState(state),
                     false
                 )
             )

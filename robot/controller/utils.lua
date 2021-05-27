@@ -1,4 +1,8 @@
 local Direction = require('util.commons').Direction
+local Set = require('util.set')
+
+local ExcludeOption = require('robot.controller.planner.exclude_option')
+local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 
 local utils = {}
 
@@ -34,6 +38,14 @@ function utils.discreteDirection(robotDirection)
                 return Direction.NORTH
             end
         end
+end
+
+function utils.getExcludedOptionsByState(state)
+    local excludedOptions = Set:new{}
+    if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
+        excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
+    end
+    return excludedOptions
 end
 
 return utils

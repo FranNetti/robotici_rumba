@@ -1,28 +1,17 @@
 local commons = require('util.commons')
 local cell_status = require("robot.controller.map.cell_status")
 local Position = commons.Position
-local Set = require('util.set')
 
 local logger = require('util.logger')
 local LogLevel = logger.LogLevel
 
 local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.controller.planner.move_action')
-local ExcludeOption = require('robot.controller.planner.exclude_option')
 local Planner = require('robot.controller.planner.planner')
 
 local controller_utils = require('robot.controller.utils')
 local State = require('robot.controller.behaviour.room_coverage.state')
-local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 local MoveExecutioner = require('robot.controller.move_executioner')
-
-local function getExcludedOptionsByState(state)
-    local excludedOptions = Set:new{}
-    if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
-        excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT, ExcludeOption.EXCLUDE_BACK}
-    end
-    return excludedOptions
-end
 
 RoomCoverage = {
 
@@ -90,7 +79,7 @@ RoomCoverage = {
         )
         logger.print("---------------")
 
-        local excludedOptions = getExcludedOptionsByState(state)
+        local excludedOptions = controller_utils.getExcludedOptionsByState(state)
 
         local actions = self.planner:getActionsTo(
             self.map.position,
@@ -231,7 +220,7 @@ RoomCoverage = {
                     self.map.position,
                     self.target,
                     controller_utils.discreteDirection(state.robotDirection),
-                    getExcludedOptionsByState(state)
+                    controller_utils.getExcludedOptionsByState(state)
                 )
 
                 if actions ~= nil and #actions > 0 then
@@ -270,7 +259,7 @@ RoomCoverage = {
 
     perimeterIdentified = function (self, state)
         local map = self.map.map
-        local excludeOptions = getExcludedOptionsByState(state)
+        local excludeOptions = controller_utils.getExcludedOptionsByState(state)
         local currentDirection = controller_utils.discreteDirection(state.robotDirection)
         for i = self.target.lat, #map do
             for j = self.target.lng , #map[i] do
@@ -328,7 +317,7 @@ RoomCoverage = {
             self.state = State.STAND_BY
         else
             self.state = self.oldState
-            local excludedOptions = getExcludedOptionsByState(state)
+            local excludedOptions = controller_utils.getExcludedOptionsByState(state)
             local target = nil
 
             if self.state == State.EXPLORING then
