@@ -4,6 +4,7 @@ local Direction = require('util.commons').Direction
 local logger = require('util.logger')
 local LogLevel = logger.LogLevel
 local Set = require('util.set')
+local table = require('extensions.lua.table')
 
 local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.controller.planner.move_action')
@@ -12,8 +13,11 @@ local controller_utils = require('robot.controller.utils')
 local CellStatus = require('robot.controller.map.cell_status')
 local MoveExecutioner = require('robot.controller.move_executioner')
 local Planner = require('robot.controller.planner.planner')
+local Subsumption = require('robot.controller.subsumption')
 
 local State = require('robot.controller.behaviour.room_cleaner.state')
+
+local LEVELS_TO_SUBSUME = {3}
 
 local function isRobotNearLastKnownPosition(oldPosition, newPosition)
     return oldPosition == newPosition
@@ -193,7 +197,7 @@ RoomCleaner = {
         return RobotAction.stayStill({
             hasToClean = true,
             leds = { switchedOn = true, color = Color.WHITE }
-        }, {1, 3})
+        }, { Subsumption.subsumeAll })
     end,
 
     --[[ --------- HANDLE DIFFERENT CELL ---------- ]]
@@ -218,7 +222,7 @@ RoomCleaner = {
                 if success then
                     self.target = dirtPosition
                     self.state = State.GOING_TO_DIRT
-                    return RobotAction.stayStill({}, {1,3})
+                    return RobotAction.stayStill({}, { Subsumption.subsumeAll })
                 else
                     --[[
                         if the cell can't be currently reached it is added to this set
@@ -290,7 +294,7 @@ RoomCleaner = {
 
             self.map:setCellAsObstacle(result.obstaclePosition)
             self.planner:setCellAsObstacle(result.obstaclePosition)
-            return RobotAction:new({}, {3})
+            return RobotAction:new({}, LEVELS_TO_SUBSUME)
         elseif result.isMoveActionFinished then
             self.map:setCellAsClean(result.position)
             self.planner:setCellAsClean(result.position)
@@ -298,7 +302,7 @@ RoomCleaner = {
             return self:reachDirtPositionNextMove(state)
         else
             -- subsume no matter what the room coverage level
-            table.insert(result.action.levelsToSubsume, 3)
+            table.insertMultiple(result.action.levelsToSubsume, LEVELS_TO_SUBSUME)
             return result.action
         end
     end,
@@ -307,13 +311,13 @@ RoomCleaner = {
         if self.moveExecutioner:hasMoreActions() then
             local nextMove = self.moveExecutioner.actions[1]
             if nextMove == MoveAction.GO_AHEAD then
-                return RobotAction:new({}, {3})
+                return RobotAction:new({}, LEVELS_TO_SUBSUME)
             elseif nextMove == MoveAction.GO_BACK or nextMove == MoveAction.GO_BACK_BEFORE_TURNING then
-                return RobotAction.goBack({}, {1, 3})
+                return RobotAction.goBack({}, {1, table.unpack(LEVELS_TO_SUBSUME)})
             elseif nextMove == MoveAction.TURN_LEFT then
-                return RobotAction.turnLeft({}, {1, 3})
+                return RobotAction.turnLeft({}, {1, table.unpack(LEVELS_TO_SUBSUME)})
             elseif nextMove == MoveAction.TURN_RIGHT then
-                return RobotAction.turnRight({}, {1, 3})
+                return RobotAction.turnRight({}, {1, table.unpack(LEVELS_TO_SUBSUME)})
             end
         else
             --[[
@@ -350,7 +354,7 @@ RoomCleaner = {
             if actions ~= nil and #actions > 0 then
                 self.moveExecutioner:setActions(actions)
                 self.state = State.GOING_TO_DIRT
-                return RobotAction.stayStill({}, {1, 3})
+                return RobotAction.stayStill({}, { Subsumption.subsumeAll })
             elseif self.map.position == self.target then
                 return self:goToFirstDirtyCell(state)
             else
@@ -368,7 +372,7 @@ RoomCleaner = {
             end
         else
             -- subsume no matter what the room coverage level
-            table.insert(result.action.levelsToSubsume, 3)
+            table.insertMultiple(result.action.levelsToSubsume, LEVELS_TO_SUBSUME)
             return result.action
         end
     end,

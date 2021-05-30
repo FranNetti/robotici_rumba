@@ -2,6 +2,7 @@ local Color = require('util.commons').Color
 local Position = require('util.commons').Position
 local logger = require('util.logger')
 local LogLevel = logger.LogLevel
+local table = require('extensions.lua.table')
 
 local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.controller.planner.move_action')
@@ -9,12 +10,14 @@ local robot_parameters = require('robot.parameters')
 local controller_utils = require('robot.controller.utils')
 local MoveExecutioner = require('robot.controller.move_executioner')
 local Planner = require('robot.controller.planner.planner')
+local Subsumption = require('robot.controller.subsumption')
 
 local State = require('robot.controller.behaviour.room_monitor.state')
 
 local TEMPERATURE_THRESHOLD_UPPER_LIMIT = 30
 local TEMPERATURE_THRESHOLD_LOWER_LIMIT = 27
 local ALERT_LED_COLOR = Color.CYAN
+local LEVELS_TO_SUBSUME = {3, 4}
 
 local function isRobotNotTurning(state)
     return not (state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
@@ -96,7 +99,7 @@ RoomMonitor = {
             end
             return RobotAction.stayStill({
                 leds = { switchedOn = true, color = ALERT_LED_COLOR }
-            }, {1, 3, 4})
+            }, { Subsumption.subsumeAll })
         else
             return RobotAction:new({})
         end
@@ -113,7 +116,7 @@ RoomMonitor = {
         else
             return RobotAction.stayStill({
                 leds = { switchedOn = true, color = ALERT_LED_COLOR }
-            }, {1, 3, 4})
+            }, { Subsumption.subsumeAll })
         end
     end,
 
@@ -131,7 +134,7 @@ RoomMonitor = {
             self.state = State.ALERT
             return RobotAction.stayStill({
                 leds = { switchedOn = true, color = ALERT_LED_COLOR }
-            }, {1, 3, 4})
+            }, { Subsumption.subsumeAll })
         end
 
         local result = self.moveExecutioner:doNextMove(state)
@@ -148,7 +151,7 @@ RoomMonitor = {
 
             self.map:setCellAsObstacle(result.obstaclePosition)
             self.planner:setCellAsObstacle(result.obstaclePosition)
-            return RobotAction:new({}, {3, 4})
+            return RobotAction:new({}, LEVELS_TO_SUBSUME)
         elseif result.isMoveActionFinished then
             if state.isDirtDetected then
                 self.map:setCellAsDirty(result.position)
@@ -160,8 +163,7 @@ RoomMonitor = {
             return self:alertGoingHomeNextMove(state)
         else
             -- subsume no matter what the room coverage and room cleaner level
-            table.insert(result.action.levelsToSubsume, 3)
-            table.insert(result.action.levelsToSubsume, 4)
+            table.insertMultiple(result.action.levelsToSubsume, LEVELS_TO_SUBSUME)
             result.action.leds = { switchedOn = true, color = ALERT_LED_COLOR }
             return result.action
         end
@@ -173,25 +175,25 @@ RoomMonitor = {
             if nextMove == MoveAction.GO_AHEAD then
                 return RobotAction:new({
                     leds = { switchedOn = true, color = ALERT_LED_COLOR },
-                }, {3, 4})
+                }, LEVELS_TO_SUBSUME)
             elseif nextMove == MoveAction.GO_BACK or nextMove == MoveAction.GO_BACK_BEFORE_TURNING then
                 return RobotAction.goBack({
                     leds = { switchedOn = true, color = ALERT_LED_COLOR },
-                }, {1, 3, 4})
+                }, {1, table.unpack(LEVELS_TO_SUBSUME)})
             elseif nextMove == MoveAction.TURN_LEFT then
                 return RobotAction.turnLeft({
                     leds = { switchedOn = true, color = ALERT_LED_COLOR },
-                }, {1, 3, 4})
+                }, {1, table.unpack(LEVELS_TO_SUBSUME)})
             elseif nextMove == MoveAction.TURN_RIGHT then
                 return RobotAction.turnRight({
                     leds = { switchedOn = true, color = ALERT_LED_COLOR },
-                }, {1, 3, 4})
+                }, {1, table.unpack(LEVELS_TO_SUBSUME)})
             end
         else
             self.state = State.ALERT
             return RobotAction.stayStill({
                 leds = { switchedOn = true, color = ALERT_LED_COLOR },
-            }, {1, 3, 4})
+            }, { Subsumption.subsumeAll })
         end
     end,
 
@@ -221,11 +223,10 @@ RoomMonitor = {
             self.state = State.ALERT_GOING_HOME
             return RobotAction.stayStill({
                 leds = { switchedOn = true, color = ALERT_LED_COLOR },
-            }, {1, 3, 4})
+            }, { Subsumption.subsumeAll })
         else
             -- subsume no matter what the room coverage level
-            table.insert(result.action.levelsToSubsume, 3)
-            table.insert(result.action.levelsToSubsume, 4)
+            table.insertMultiple(result.action.levelsToSubsume, LEVELS_TO_SUBSUME)
             result.action.leds = { switchedOn = true, color = ALERT_LED_COLOR }
             return result.action
         end

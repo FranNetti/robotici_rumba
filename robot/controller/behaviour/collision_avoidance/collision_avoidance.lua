@@ -1,6 +1,7 @@
 local Action = require('robot.commons').Action
 local Color = require('util.commons').Color
 local logger = require('util.logger')
+local Subsumption = require('robot.controller.subsumption')
 
 local CLOSE_OBJECT_FRONT_DISTANCE_LIST = {
     0.75,
@@ -41,19 +42,19 @@ CollisionAvoidance = {
             logger.printToConsole("----------------")
             return Action.stayStill({
                 leds = {switchedOn = true, color = Color.YELLOW}
-            }, {1})
+            }, { Subsumption.subsumeAll })
         elseif self.isObjectInLeftRange(state.proximity) then
             printObstacleDetected('to the left', state.proximity, 3, 6)
             logger.printToConsole("----------------")
             return Action.stayStill({
                 leds = {switchedOn = true, color = Color.YELLOW}
-            }, {1})
+            }, { Subsumption.subsumeAll })
         elseif self.isObjectInRightRange(state.proximity) then
             printObstacleDetected('to the right', state.proximity, 19, 22)
             logger.printToConsole("----------------")
             return Action.stayStill({
                 leds = {switchedOn = true, color = Color.YELLOW}
-            }, {1})
+            }, { Subsumption.subsumeAll })
         end
 
         return Action:new({})

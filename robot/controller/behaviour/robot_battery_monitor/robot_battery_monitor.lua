@@ -19,8 +19,7 @@ local Subsumption = require('robot.controller.subsumption')
 
 local GOING_TO_CHARGING_STATION_COLOR = Color.ORANGE
 local MARGIN_AUTONOMY = 0.75
-local LEVELS_TO_SUBSUME = {3}
--- local LEVELS_TO_SUBSUME = {3, 4, 5}
+local LEVELS_TO_SUBSUME = {3, 4, 5}
 
 local function getAvailableBatteryEnoughToJustGoBackHome(robotBatteryMonitor, state)
     robotBatteryMonitor.planner = Planner:new(robotBatteryMonitor.map.map)

@@ -8,6 +8,7 @@ local LogLevel = logger.LogLevel
 local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.controller.planner.move_action')
 local Planner = require('robot.controller.planner.planner')
+local Subsumption = require('robot.controller.subsumption')
 
 local controller_utils = require('robot.controller.utils')
 local State = require('robot.controller.behaviour.room_coverage.state')
@@ -61,7 +62,7 @@ RoomCoverage = {
         if self.map.position ~= Position:new(0,0) then
             self.state = State.RECOVERY
             self.oldState = State.GOING_HOME
-            return RobotAction.stayStill({}, {1})
+            return RobotAction.stayStill({}, { Subsumption.subsumeAll })
         end
 
 
@@ -115,7 +116,7 @@ RoomCoverage = {
         end
 
         logger.printToConsole(self.map:toString())
-        return RobotAction.stayStill({}, {1})
+        return RobotAction.stayStill({}, { Subsumption.subsumeAll })
     end,
 
     --[[ --------- EXPLORING ---------- ]]
@@ -130,7 +131,7 @@ RoomCoverage = {
         ]]
         if self.lastKnownPosition ~= self.map.position then
             self.state = State.RECOVERY
-            return RobotAction.stayStill({}, {1})
+            return RobotAction.stayStill({}, { Subsumption.subsumeAll })
         end
 
         local result = self.moveExecutioner:doNextMove(state)
@@ -176,7 +177,7 @@ RoomCoverage = {
         elseif self.state == State.GOING_HOME then
             self.state = State.EXPLORED
         end
-        return RobotAction.stayStill({}, {1})
+        return RobotAction.stayStill({}, { Subsumption.subsumeAll })
     end,
 
     --[[ ---------- TARGET REACHED --------- ]]
@@ -196,7 +197,7 @@ RoomCoverage = {
             )
             self.state = State.GOING_HOME
         end
-        return RobotAction.stayStill({}, {1})
+        return RobotAction.stayStill({}, { Subsumption.subsumeAll })
     end,
 
     --[[ --------- HANDLE OBSTACLE ---------- ]]
@@ -249,7 +250,7 @@ RoomCoverage = {
                     self.state = State.TARGET_REACHED
                 end
             end
-            return RobotAction.stayStill({}, {1})
+            return RobotAction.stayStill({}, { Subsumption.subsumeAll })
         else
             return result.action
         end
@@ -275,7 +276,7 @@ RoomCoverage = {
                         self.moveExecutioner:setActions(actions)
                         self.state = State.EXPLORING
                         self.target = cell
-                        return RobotAction.stayStill({}, {1})
+                        return RobotAction.stayStill({}, { Subsumption.subsumeAll })
                     else
                         self.planner:setCellAsObstacle(cell)
                         self.map:setCellAsObstacle(cell)
@@ -298,7 +299,7 @@ RoomCoverage = {
             )
             self.state = State.GOING_HOME
         end
-        return RobotAction.stayStill({}, {1})
+        return RobotAction.stayStill({}, { Subsumption.subsumeAll })
     end,
 
     --[[ --------- RECOVERY ---------- ]]
@@ -360,7 +361,7 @@ RoomCoverage = {
         end
 
         self.lastKnownPosition = self.map.position
-        return RobotAction.stayStill({}, {1})
+        return RobotAction.stayStill({}, { Subsumption.subsumeAll })
     end,
 
     --[[ --------- EXPLORED ---------- ]]
@@ -372,7 +373,7 @@ RoomCoverage = {
         if self.map.position ~= Position:new(0,0) then
             self.state = State.PERIMETER_IDENTIFIED
         end
-        return RobotAction.stayStill({}, {1})
+        return RobotAction.stayStill({}, { Subsumption.subsumeAll })
     end,
 }
 
