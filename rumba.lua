@@ -15,6 +15,7 @@ local CollisionAvoidance = require('robot.controller.behaviour.collision_avoidan
 local RoomCoverage = require('robot.controller.behaviour.room_coverage.room_coverage')
 local RoomCleaner = require('robot.controller.behaviour.room_cleaner.room_cleaner')
 local RoomMonitor = require('robot.controller.behaviour.room_monitor.room_monitor')
+local RobotBatteryMonitor = require('robot.controller.behaviour.robot_battery_monitor.robot_battery_monitor')
 
 local INITIAL_ROOM_TEMPERATURE = 12
 logger.level = logger.LogLevel.INFO
@@ -48,6 +49,7 @@ local function setupWorkspace()
 		RoomCoverage:new(robotMap),
 		RoomCleaner:new(robotMap),
 		RoomMonitor:new(robotMap),
+		RobotBatteryMonitor:new(robotMap),
 	}
 	-------
 	logger.stringify(robot)
@@ -79,7 +81,7 @@ function step()
 	)
 
 	local state = RobotState:new{
-		batteryLevel = battery.percentage,
+		batteryLevel = battery.batteryLevel,
 		roomTemperature = temperatureSensor.temperature,
 		robotDirection = compass:getCurrentDirection(),
 		isDirtDetected = dirtDetector:detect(position),
@@ -89,7 +91,7 @@ function step()
 
 	local action = robotController:behave(state)
 
-	if battery.percentage == 0 then
+	if battery.batteryLevel == 0 then
 		robot.wheels.set_velocity(0, 0)
 		robot.leds.set_all_colors(Color.RED)
 	else
@@ -110,7 +112,7 @@ function step()
 
 		if action.leds ~= nil and action.leds.switchedOn then
 			robot.leds.set_all_colors(action.leds.color)
-		elseif battery.percentage < 5 then
+		elseif battery.batteryLevel < 5 then
 			robot.leds.set_all_colors(Color.MAGENTA)
 		else
 			robot.leds.set_all_colors(Color.BLACK)
@@ -118,7 +120,7 @@ function step()
 
 	end
 
-	--battery:tick()
+	battery:tick()
 	temperatureSensor:tick()
 
 end

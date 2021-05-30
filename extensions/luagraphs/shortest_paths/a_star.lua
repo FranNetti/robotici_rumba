@@ -1,3 +1,5 @@
+local logger = require('util.logger')
+
 local algorithm = {}
 algorithm.__index = algorithm
 
@@ -42,6 +44,8 @@ local function neighbor_nodes(theNode, graph)
 				table.insert(neighbors, edges.a[i]:from())
 			end
 		end
+	else
+		logger.printToConsole('[A_STAR] neighbors were null')
     end
 	return neighbors
 end

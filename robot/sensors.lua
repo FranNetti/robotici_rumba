@@ -1,15 +1,5 @@
 require 'math'
 
--- battery constants
-local BATTERY_STEP_DECREASE_FREQUENCY = 40
-local BATTERY_STEP_INCREASE_FREQUENCY = 20
-
--- temperature sensor constants
-local TEMPERATURE_STEP_CHANGE_FREQUENCY = 50
-local MAX_TEMPERATURE_CHANGE = 5
-local TEMPERATURE_INCREASE_PROBABILITY = 0.6
-local MAX_TEMPERATURE_IN_ROOM = 35;
-
 local commons = require('util.commons')
 local logger = require('util.logger')
 local LogLevel = logger.LogLevel
@@ -19,9 +9,14 @@ Sensors = {}
 
 Sensors.Battery = {
 
+    -- battery constants
+    BATTERY_STEP_DECREASE_FREQUENCY = 40,
+    BATTERY_STEP_INCREASE_FREQUENCY = 10,
+    BATTERY_MAX_VALUE = 60,
+
     new = function(self)
         local o = {
-            percentage = 100;
+            batteryLevel = Sensors.Battery.BATTERY_MAX_VALUE;
             recharge = false;
             stepCount = 0;
         }
@@ -46,18 +41,25 @@ Sensors.Battery = {
 
     tick = function(self)
         self.stepCount = self.stepCount + 1;
-        if self.recharge and (self.stepCount % BATTERY_STEP_INCREASE_FREQUENCY == 0) then
-            self.percentage = self.percentage + 1;
-        elseif not self.recharge and (self.stepCount % BATTERY_STEP_DECREASE_FREQUENCY == 0) then
-            self.percentage = self.percentage - 1;
-        end
-        if self.percentage < 0 then self.percentage = 0
-        elseif self.percentage > 100 then self.percentage = 100
+        if self.recharge and (self.stepCount % self.BATTERY_STEP_INCREASE_FREQUENCY == 0) then
+            self.batteryLevel = self.batteryLevel + 1;
+            if self.batteryLevel > self.BATTERY_MAX_VALUE then self.batteryLevel = self.BATTERY_MAX_VALUE end
+            logger.print("---- Robot battery level is now at " .. self.batteryLevel .. " ----", LogLevel.INFO)
+        elseif not self.recharge and (self.stepCount % self.BATTERY_STEP_DECREASE_FREQUENCY == 0) then
+            self.batteryLevel = self.batteryLevel - 1;
+            if self.batteryLevel < 0 then self.batteryLevel = 0 end
+            logger.print("----  Robot battery level is now at " .. self.batteryLevel .. " ----", LogLevel.INFO)
         end
     end;
 }
 
 Sensors.TemperatureSensor = {
+
+    -- temperature sensor constants
+    TEMPERATURE_STEP_CHANGE_FREQUENCY = 50,
+    MAX_TEMPERATURE_CHANGE = 5,
+    TEMPERATURE_INCREASE_PROBABILITY = 0.6,
+    MAX_TEMPERATURE_IN_ROOM = 35,
 
     ---Create new Temperature sensor
     ---@param initialTemperature number the initial temperature of the room
@@ -74,17 +76,17 @@ Sensors.TemperatureSensor = {
 
     tick = function(self)
         self.stepCount = self.stepCount + 1
-        if self.stepCount % TEMPERATURE_STEP_CHANGE_FREQUENCY == 0 then
-            local newValue = math.random(MAX_TEMPERATURE_CHANGE)
-            local isTemperatureIncreasing = math.random() < TEMPERATURE_INCREASE_PROBABILITY
+        if self.stepCount % self.TEMPERATURE_STEP_CHANGE_FREQUENCY == 0 then
+            local newValue = math.random(self.MAX_TEMPERATURE_CHANGE)
+            local isTemperatureIncreasing = math.random() < self.TEMPERATURE_INCREASE_PROBABILITY
             if isTemperatureIncreasing then
                 self.temperature = self.temperature + newValue
             else
                 self.temperature = self.temperature - newValue
             end
 
-            if self.temperature > MAX_TEMPERATURE_IN_ROOM then
-                self.temperature = MAX_TEMPERATURE_IN_ROOM
+            if self.temperature > self.MAX_TEMPERATURE_IN_ROOM then
+                self.temperature = self.MAX_TEMPERATURE_IN_ROOM
             elseif self.temperature < 0 then
                 self.temperature = 0
             end
