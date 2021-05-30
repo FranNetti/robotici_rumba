@@ -11,7 +11,7 @@ local MoveAction = require('robot.controller.planner.move_action')
 local robot_parameters = require('robot.parameters')
 local controller_utils = require('robot.controller.utils')
 local CellStatus = require('robot.controller.map.cell_status')
-local MoveExecutioner = require('robot.controller.move_executioner')
+local MoveExecutioner = require('robot.controller.move_executioner.move_executioner')
 local Planner = require('robot.controller.planner.planner')
 local Subsumption = require('robot.controller.subsumption')
 
@@ -28,6 +28,7 @@ local function isRobotNearLastKnownPosition(oldPosition, newPosition)
 end
 
 local function getFirstDirtyCell(map, dirtPositionsToSkip)
+    logger.print('working', LogLevel.WARNING)
     local length = #map.map
     dirtPositionsToSkip = dirtPositionsToSkip or Set:new{}
     for i = 0, length do
@@ -132,6 +133,7 @@ RoomCleaner = {
             return self:handleDifferentPosition(state)
         end
 
+        logger.print('working', LogLevel.WARNING)
         if self.map:getCurrentCell() == CellStatus.DIRTY then
             self.map:setCellAsClean(self.map.position)
         end
@@ -249,7 +251,7 @@ RoomCleaner = {
         )
 
         if actions ~= nil and #actions > 0 then
-            self.moveExecutioner:setActions(actions)
+            self.moveExecutioner:setActions(actions, state)
             return true
         else
             self.planner:addNewDiagonalPoint(currentDepth + 1)
@@ -261,7 +263,7 @@ RoomCleaner = {
                 excludedOptions
             )
             if actions ~= nil and #actions > 0 then
-                self.moveExecutioner:setActions(actions)
+                self.moveExecutioner:setActions(actions, state)
                 return true
             else
                 if self.map.isPerimeterIdentified then
@@ -352,7 +354,7 @@ RoomCleaner = {
             )
 
             if actions ~= nil and #actions > 0 then
-                self.moveExecutioner:setActions(actions)
+                self.moveExecutioner:setActions(actions, state)
                 self.state = State.GOING_TO_DIRT
                 return RobotAction.stayStill({}, { Subsumption.subsumeAll })
             elseif self.map.position == self.target then

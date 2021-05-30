@@ -8,7 +8,7 @@ local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.controller.planner.move_action')
 local robot_parameters = require('robot.parameters')
 local controller_utils = require('robot.controller.utils')
-local MoveExecutioner = require('robot.controller.move_executioner')
+local MoveExecutioner = require('robot.controller.move_executioner.move_executioner')
 local Planner = require('robot.controller.planner.planner')
 local Subsumption = require('robot.controller.subsumption')
 
@@ -38,7 +38,7 @@ local function computeActionsToHome(roomMonitor, state)
             currentDirection,
             excludedOptions,
             false
-        )
+        ), state
     )
 end
 
@@ -218,7 +218,7 @@ RoomMonitor = {
                     controller_utils.discreteDirection(state.robotDirection),
                     controller_utils.getExcludedOptionsByState(state),
                     false
-                )
+                ), state
             )
             self.state = State.ALERT_GOING_HOME
             return RobotAction.stayStill({

@@ -42,9 +42,9 @@ end
 
 function utils.getExcludedOptionsByState(state)
     local excludedOptions = Set:new{}
-    if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
+    --[[ if not CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity) then
         excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
-    end
+    end ]]
     return excludedOptions
 end
 

@@ -10,7 +10,7 @@ local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.controller.planner.move_action')
 local robot_parameters = require('robot.parameters')
 local controller_utils = require('robot.controller.utils')
-local MoveExecutioner = require('robot.controller.move_executioner')
+local MoveExecutioner = require('robot.controller.move_executioner.move_executioner')
 local Planner = require('robot.controller.planner.planner')
 
 local State = require('robot.controller.behaviour.robot_battery_monitor.state')
@@ -64,7 +64,8 @@ local function computeActionsToHome(robotBatteryMonitor, state)
             yen,
             state,
             robotBatteryMonitor.map.position
-        )
+        ),
+        state
     )
 end
 
@@ -262,7 +263,8 @@ RoomMonitor = {
                     controller_utils.discreteDirection(state.robotDirection),
                     controller_utils.getExcludedOptionsByState(state),
                     false
-                )
+                ),
+                state
             )
             self.state = State.ALERT_GOING_CHARGING_STATION
             return RobotAction.stayStill({
