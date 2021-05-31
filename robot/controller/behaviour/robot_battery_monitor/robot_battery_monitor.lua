@@ -18,11 +18,17 @@ local helpers = require('robot.controller.behaviour.robot_battery_monitor.helper
 local Subsumption = require('robot.controller.subsumption')
 
 local GOING_TO_CHARGING_STATION_COLOR = Color.ORANGE
+local CHARGING_COLOR = Color.GREEN
 local MARGIN_AUTONOMY = 0.75
 local LEVELS_TO_SUBSUME = {3, 4, 5}
 
 local function getAvailableBatteryEnoughToJustGoBackHome(robotBatteryMonitor, state)
     robotBatteryMonitor.planner = Planner:new(robotBatteryMonitor.map.map)
+    robotBatteryMonitor.moveExecutioner = MoveExecutioner:new(
+        robotBatteryMonitor.map,
+        robotBatteryMonitor.planner,
+        controller_utils.discreteDirection(state.robotDirection)
+    )
     local numberOfCellsToHome = #(robotBatteryMonitor.planner:getPathTo(
         robotBatteryMonitor.map.position,
         Position:new(0,0),
@@ -52,19 +58,24 @@ local function isRobotNotTurning(state)
         and state.wheels.velocity_left ~= 0)
 end
 
-local function computeActionsToHome(robotBatteryMonitor, state)
+local function computeActionsToHome(robotBatteryMonitor, state, lastAction, obstacleEncountered)
     local yen = yen_ksp.create(
         robotBatteryMonitor.planner.graph,
         Planner.encodeCoordinatesFromPosition,
         Planner.decodeCoordinates
     )
 
+    local actions = helpers.getFastestRoute(
+        yen,
+        state,
+        robotBatteryMonitor.map.position,
+        lastAction,
+        obstacleEncountered
+    )
+
+    robotBatteryMonitor.planner.actions = actions
     robotBatteryMonitor.moveExecutioner:setActions(
-        helpers.getFastestRoute(
-            yen,
-            state,
-            robotBatteryMonitor.map.position
-        ),
+        actions,
         state
     )
 end
@@ -99,11 +110,12 @@ end
 RoomMonitor = {
 
     new = function (self, map)
+        local planner = Planner:new(map.map)
         local o = {
             state = State.WORKING,
             map = map,
-            moveExecutioner = MoveExecutioner:new(map),
-            planner = nil,
+            moveExecutioner = MoveExecutioner:new(map, planner),
+            planner = planner,
             lastKnownPosition = map.position,
             stepCounter = 0,
             checkFrequency = 0
@@ -131,7 +143,6 @@ RoomMonitor = {
     --[[ --------- WORKING ---------- ]]
 
     working = function (self, state)
-        self.stepCounter = self.stepCounter + 1
         if self.stepCounter >= self.checkFrequency or self.stepCounter == 0 then
             self.stepCounter = 0
             local batteryDifference = getAvailableBatteryEnoughToJustGoBackHome(self, state)
@@ -140,12 +151,18 @@ RoomMonitor = {
                 handleStopMove(self, state)
                 computeActionsToHome(self, state)
                 self.state = State.ALERT_GOING_CHARGING_STATION
-                return RobotAction.stayStill({
+                return RobotAction.stayStill({leds = {
                     switchedOn = true,
                     color = GOING_TO_CHARGING_STATION_COLOR
-                }, { Subsumption.subsumeAll })
+                }}, { Subsumption.subsumeAll })
+            elseif batteryDifference <= 0 then
+                return RobotAction:new({leds = {
+                    switchedOn = true,
+                    color = GOING_TO_CHARGING_STATION_COLOR
+                }})
             end
         end
+        self.stepCounter = self.stepCounter + 1
         return RobotAction:new({})
     end,
 
@@ -161,7 +178,7 @@ RoomMonitor = {
         else
             return RobotAction.stayStill({
                 hasToRecharge = true,
-                leds = { switchedOn = true, color = Color.GREEN }
+                leds = { switchedOn = true, color = CHARGING_COLOR }
             }, { Subsumption.subsumeAll })
         end
     end,
@@ -177,7 +194,7 @@ RoomMonitor = {
             self.state = State.CHARGING
             return RobotAction.stayStill({
                 hasToRecharge = true,
-                leds = { switchedOn = true, color = Color.GREEN }
+                leds = { switchedOn = true, color = CHARGING_COLOR }
             }, { Subsumption.subsumeAll })
         end
 
@@ -190,11 +207,14 @@ RoomMonitor = {
 
             logger.print("[ROBOT_BATTERY_MONITOR]")
             logger.print("Currently in " .. self.map.position:toString(), LogLevel.INFO)
-            logger.print(result.obstaclePosition:toString() .. " detected as obstacle!", LogLevel.WARNING)
-            logger.print("----------------", LogLevel.WARNING)
 
-            self.map:setCellAsObstacle(result.obstaclePosition)
-            self.planner:setCellAsObstacle(result.obstaclePosition)
+            for i = 1, #result.obstaclePositions do
+                self.map:setCellAsObstacle(result.obstaclePositions[i])
+                self.planner:setCellAsObstacle(result.obstaclePositions[i])
+                logger.print(result.obstaclePositions[i]:toString() .. " detected as obstacle!", LogLevel.WARNING)
+            end
+
+            logger.print("----------------", LogLevel.WARNING)
             return RobotAction:new({}, LEVELS_TO_SUBSUME)
         elseif result.isMoveActionFinished then
             if state.isDirtDetected then
@@ -237,7 +257,7 @@ RoomMonitor = {
             self.state = State.CHARGING
             return RobotAction.stayStill({
                 hasToRecharge = true,
-                leds = { switchedOn = true, color = Color.GREEN }
+                leds = { switchedOn = true, color = CHARGING_COLOR }
             }, { Subsumption.subsumeAll })
         end
     end,
@@ -256,15 +276,8 @@ RoomMonitor = {
         self.map.position = result.position
 
         if result.isMoveActionFinished then
-            self.moveExecutioner:setActions(
-                self.planner:getActionsTo(
-                    self.map.position,
-                    Position:new(0,0),
-                    controller_utils.discreteDirection(state.robotDirection),
-                    controller_utils.getExcludedOptionsByState(state),
-                    false
-                ),
-                state
+            computeActionsToHome(
+                self, state, self.moveExecutioner.actions[1], true
             )
             self.state = State.ALERT_GOING_CHARGING_STATION
             return RobotAction.stayStill({

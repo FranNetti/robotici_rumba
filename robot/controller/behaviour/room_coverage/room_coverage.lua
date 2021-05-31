@@ -322,6 +322,11 @@ RoomCoverage = {
             changed and the planner must be in sync with that
         ]]
         self.planner = Planner:new(self.map.map)
+        self.moveExecutioner = MoveExecutioner:new(
+            self.map,
+            self.planner,
+            controller_utils.discreteDirection(state.robotDirection)
+        )
 
         if self.oldState == State.EXPLORING and self.map.position == self.target then
             self.state = State.TARGET_REACHED

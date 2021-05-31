@@ -26,7 +26,6 @@ Actuators.Brush = {
         for i=1,length do
             local area = self.areaList[i]
             if commons.positionInDirtArea(position, area) then
-                logger.print("-- Rumba is cleaning --", logger.LogLevel.INFO)
 
                 if area.counter == nil then
                     area.counter = 1
@@ -35,6 +34,7 @@ Actuators.Brush = {
                 end
 
                 if area.counter % BRUSH_CLEAN_FREQUENCY == 0 then
+                    logger.print("-- Rumba is cleaning --", logger.LogLevel.INFO)
                     area.dirtQuantity = area.dirtQuantity - 1
                     if area.dirtQuantity <= 0 then
                         table.remove(self.areaList, i)

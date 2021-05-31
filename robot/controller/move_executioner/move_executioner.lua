@@ -74,11 +74,11 @@ end
 
 local MoveExecutioner = {
 
-    new = function (self, map, planner)
+    new = function (self, map, planner, currentDirection)
         local o = {
             map = map,
             planner = planner,
-            oldDirection = Direction.NORTH,
+            oldDirection = currentDirection or Direction.NORTH,
             actions = nil,
             numberOfOriginalActions = 0,
             doObstacleHelperAction = false,
@@ -94,7 +94,7 @@ local MoveExecutioner = {
         if self.map.position == Position:new(0,0) then
             local firstAction = self.actions[1]
             local currentDirection = controller_utils.discreteDirection(state.robotDirection)
-            if firstAction == MoveAction.TURN_LEFT and currentDirection == Direction.WEST 
+            if firstAction == MoveAction.TURN_LEFT and currentDirection == Direction.EAST
                 or firstAction == MoveAction.TURN_RIGHT and currentDirection == Direction.SOUTH then
                 addActionToHead(self, MoveAction.GO_BACK_BEFORE_TURNING)
             end
@@ -481,10 +481,9 @@ local MoveExecutioner = {
             if self.planner.actions[1] == self.actions[1] and #self.planner.actions == self.numberOfOriginalActions then
                 return {
                     isMoveActionFinished = isMoveFinished,
-                    action = action,
-                    position = currentPosition
+                    action = action
                 }
-            else 
+            else
                 --[[
                     It's important to obtain a positive value for the distance travelled in order to follow the algorithm
                     logics. The position must be moved to the previous cell too. this logic applies only if the turn action
@@ -500,6 +499,13 @@ local MoveExecutioner = {
                         MoveAction.GO_BACK
                     )
                 }
+            end
+        elseif not isRobotTurning and state.robotDirection.direction == self.oldDirection then
+            if helpers.canRobotGoBack(self, currentPosition, currentDirection) then
+                self.doObstacleHelperAction = true
+                return { action = RobotAction.goBack({}, {1, 2})}
+            else
+                return { isMoveActionFinished = true }
             end
         else
             if turnDirection == MoveAction.TURN_LEFT then

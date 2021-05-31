@@ -54,8 +54,8 @@ function helpers.canRobotGoBack(moveExecutioner, currentPosition, currentDirecti
     local forwardPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_AHEAD)
     local backPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK)
 
-    return currentPosition == Position:new(0,0) and currentDirection == Direction.SOUTH
-        or currentDirection == Position:new(0,0) and currentDirection == Direction.EAST
+    return currentPosition.lat == 0 and currentDirection == Direction.SOUTH
+        or currentPosition.lng == 0 and currentDirection == Direction.EAST
         or moveExecutioner.map:getCell(forwardPosition) == CellStatus.OBSTACLE
         and moveExecutioner.map:getCell(backPosition) ~= CellStatus.OBSTACLE
         and not (currentPosition.lat == 0 and currentDirection == Direction.NORTH)

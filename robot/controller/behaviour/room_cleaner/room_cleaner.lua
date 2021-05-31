@@ -28,7 +28,7 @@ local function isRobotNearLastKnownPosition(oldPosition, newPosition)
 end
 
 local function getFirstDirtyCell(map, dirtPositionsToSkip)
-    logger.print('working', LogLevel.WARNING)
+    --logger.print('get first dirty cell', LogLevel.WARNING)
     local length = #map.map
     dirtPositionsToSkip = dirtPositionsToSkip or Set:new{}
     for i = 0, length do
@@ -92,11 +92,12 @@ end
 RoomCleaner = {
 
     new = function (self, map)
+        local planner = Planner:new(map.map)
         local o = {
             state = State.WORKING,
             map = map,
-            moveExecutioner = MoveExecutioner:new(map),
-            planner = nil,
+            moveExecutioner = MoveExecutioner:new(map, planner),
+            planner = planner,
             target = nil,
             lastKnownPosition = map.position,
             oldDirection = Direction.NORTH,
@@ -133,7 +134,7 @@ RoomCleaner = {
             return self:handleDifferentPosition(state)
         end
 
-        logger.print('working', LogLevel.WARNING)
+        --logger.print('working', LogLevel.WARNING)
         if self.map:getCurrentCell() == CellStatus.DIRTY then
             self.map:setCellAsClean(self.map.position)
         end
@@ -219,6 +220,11 @@ RoomCleaner = {
             local currentDepth = #self.map.map
             local dirtPositionsToSkip = Set:new{}
             self.planner = Planner:new(self.map.map)
+            self.moveExecutioner = MoveExecutioner:new(
+                self.map,
+                self.planner,
+                controller_utils.discreteDirection(state.robotDirection)
+            )
             while dirtPosition ~= nil do
                 local success = self:computeActionsToDirtCell(state, dirtPosition, currentDepth)
                 if success then
@@ -247,7 +253,8 @@ RoomCleaner = {
             self.map.position,
             dirtPosition,
             currentDirection,
-            excludedOptions
+            excludedOptions,
+            false
         )
 
         if actions ~= nil and #actions > 0 then
@@ -260,7 +267,8 @@ RoomCleaner = {
                 self.map.position,
                 dirtPosition,
                 currentDirection,
-                excludedOptions
+                excludedOptions,
+                false
             )
             if actions ~= nil and #actions > 0 then
                 self.moveExecutioner:setActions(actions, state)
@@ -291,11 +299,15 @@ RoomCleaner = {
 
             logger.print("[ROOM_CLEANER]")
             logger.print("Currently in " .. self.map.position:toString(), LogLevel.INFO)
-            logger.print(result.obstaclePosition:toString() .. " detected as obstacle!", LogLevel.WARNING)
+
+            for i = 1, #result.obstaclePositions do
+                self.map:setCellAsObstacle(result.obstaclePositions[i])
+                self.planner:setCellAsObstacle(result.obstaclePositions[i])
+                logger.print(result.obstaclePositions[i]:toString() .. " detected as obstacle!", LogLevel.WARNING)
+            end
+
             logger.print("----------------", LogLevel.WARNING)
 
-            self.map:setCellAsObstacle(result.obstaclePosition)
-            self.planner:setCellAsObstacle(result.obstaclePosition)
             return RobotAction:new({}, LEVELS_TO_SUBSUME)
         elseif result.isMoveActionFinished then
             self.map:setCellAsClean(result.position)
@@ -350,7 +362,7 @@ RoomCleaner = {
                 self.map.position,
                 self.target,
                 controller_utils.discreteDirection(state.robotDirection),
-                controller_utils.getExcludedOptionsByState(state)
+                controller_utils.getExcludedOptionsAfterObstacle(self.moveExecutioner.actions[1], state)
             )
 
             if actions ~= nil and #actions > 0 then
@@ -369,6 +381,7 @@ RoomCleaner = {
                 logger.print("----------------", LogLevel.INFO)
                 if self.map.isPerimeterIdentified then
                     self.map:setCellAsObstacle(self.target)
+                    self.planner:setCellAsObstacle(self.target)
                 end
                 return self:goToFirstDirtyCell(state)
             end

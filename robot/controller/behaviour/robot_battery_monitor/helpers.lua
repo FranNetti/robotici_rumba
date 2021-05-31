@@ -19,21 +19,27 @@ function helpers.countNumberOfTurns(list)
     return count
 end
 
-function helpers.getFastestRoute(yen, state, currentPosition)
+function helpers.getFastestRoute(yen, state, currentPosition, lastAction, obstacleEncountered)
+    obstacleEncountered = obstacleEncountered or false
     local currentDirection = controller_utils.discreteDirection(state.robotDirection)
+    local excludedOptions = controller_utils.getExcludedOptionsByState(state)
+    if obstacleEncountered and lastAction ~= nil then
+        excludedOptions = controller_utils.getExcludedOptionsAfterObstacle(lastAction, state)
+    end
+
     local excludePositions = planner_helpers.determinePositionsToExclude(
-        controller_utils.getExcludedOptionsByState(state),
+        excludedOptions,
         currentPosition,
         currentDirection,
         Planner.encodeCoordinates
     )
-    table.insert(excludePositions, MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK))
+    excludePositions:add(MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK))
 
     local paths = yen:getKPath(
 		currentPosition,
         Position:new(0,0),
         K_ROUTES,
-        excludePositions
+        excludePositions:toList()
 	)
 
     local actions = {}

@@ -30,6 +30,7 @@ local function computeActionsToHome(roomMonitor, state)
     local excludedOptions = controller_utils.getExcludedOptionsByState(state)
     local currentDirection = controller_utils.discreteDirection(state.robotDirection)
     roomMonitor.planner = Planner:new(roomMonitor.map.map)
+    roomMonitor.moveExecutioner = MoveExecutioner:new(roomMonitor.map, roomMonitor.planner, currentDirection)
 
     roomMonitor.moveExecutioner:setActions(
         roomMonitor.planner:getActionsTo(
@@ -58,11 +59,12 @@ end
 RoomMonitor = {
 
     new = function (self, map)
+        local planner = Planner:new(map.map)
         local o = {
             state = State.WORKING,
             map = map,
-            moveExecutioner = MoveExecutioner:new(map),
-            planner = nil,
+            moveExecutioner = MoveExecutioner:new(map, planner),
+            planner = planner,
             lastKnownPosition = map.position,
         }
         setmetatable(o, self)
@@ -100,6 +102,8 @@ RoomMonitor = {
             return RobotAction.stayStill({
                 leds = { switchedOn = true, color = ALERT_LED_COLOR }
             }, { Subsumption.subsumeAll })
+        elseif state.roomTemperature >= TEMPERATURE_THRESHOLD_UPPER_LIMIT then
+            return RobotAction:new({ leds = { switchedOn = true, color = ALERT_LED_COLOR } })
         else
             return RobotAction:new({})
         end
@@ -109,8 +113,9 @@ RoomMonitor = {
 
     alert = function (self, state)
         if self.map.position ~= Position:new(0,0) then
+            self.state = State.WORKING
             return self:working(state)
-        elseif  state.roomTemperature < TEMPERATURE_THRESHOLD_LOWER_LIMIT then
+        elseif state.roomTemperature < TEMPERATURE_THRESHOLD_LOWER_LIMIT then
             self.state = State.WORKING
             return RobotAction:new({})
         else
@@ -146,11 +151,14 @@ RoomMonitor = {
 
             logger.print("[ROOM_MONITOR]")
             logger.print("Currently in " .. self.map.position:toString(), LogLevel.INFO)
-            logger.print(result.obstaclePosition:toString() .. " detected as obstacle!", LogLevel.WARNING)
-            logger.print("----------------", LogLevel.WARNING)
 
-            self.map:setCellAsObstacle(result.obstaclePosition)
-            self.planner:setCellAsObstacle(result.obstaclePosition)
+            for i = 1, #result.obstaclePositions do
+                self.map:setCellAsObstacle(result.obstaclePositions[i])
+                self.planner:setCellAsObstacle(result.obstaclePositions[i])
+                logger.print(result.obstaclePositions[i]:toString() .. " detected as obstacle!", LogLevel.WARNING)
+            end
+
+            logger.print("----------------", LogLevel.WARNING)
             return RobotAction:new({}, LEVELS_TO_SUBSUME)
         elseif result.isMoveActionFinished then
             if state.isDirtDetected then
@@ -216,7 +224,7 @@ RoomMonitor = {
                     self.map.position,
                     Position:new(0,0),
                     controller_utils.discreteDirection(state.robotDirection),
-                    controller_utils.getExcludedOptionsByState(state),
+                    controller_utils.getExcludedOptionsAfterObstacle(self.moveExecutioner.actions[1], state),
                     false
                 ), state
             )
