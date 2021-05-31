@@ -62,9 +62,6 @@ function utils.getExcludedOptionsAfterObstacle(lastAction, state)
     else
         optionToExclude = ExcludeOption.EXCLUDE_RIGHT
     end
-
-    logger.stringify({optionToExclude, table.unpack(utils.getExcludedOptionsByState(state))})
-
     return Set:new({optionToExclude}) + utils.getExcludedOptionsByState(state)
 end
 

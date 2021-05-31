@@ -64,6 +64,14 @@ local function updateStraightDistanceTravelled(moveExecutioner, state, currentDi
     end
 end
 
+local function updateNegativeStraightDistanceTravelled(moveExecutioner, state, currentDirection)
+    if state.wheels.distance_left < state.wheels.distance_right then
+        updateDistanceTravelled(moveExecutioner, currentDirection, state.wheels.distance_left)
+    else
+        updateDistanceTravelled(moveExecutioner, currentDirection, state.wheels.distance_right)
+    end
+end
+
 local MoveExecutioner = {
 
     new = function (self, map, planner)
@@ -73,6 +81,8 @@ local MoveExecutioner = {
             oldDirection = Direction.NORTH,
             actions = nil,
             numberOfOriginalActions = 0,
+            doObstacleHelperAction = false,
+            helperActionOffset = 0,
         }
         setmetatable(o, self)
         self.__index = self
@@ -145,8 +155,10 @@ local MoveExecutioner = {
             ]]
             if result.isObstacleEncountered and table.contains(result.obstaclePositions,Position:new(0,0)) then
                 result.obstaclePositions = { Position:new(-1,-1) }
-                result.position = Position:new(0,0)
-                setDistanceTravelled(self, currentDirection, robot_parameters.distanceToGoBackWhenHome)
+                if currentAction == MoveAction.GO_AHEAD then
+                    result.position = Position:new(0,0)
+                    self.doObstacleHelperAction = true
+                end
             end
 
             logger.print(self.map.verticalOffset.offset .. "||" .. self.map.horizontalOffset.offset)
@@ -402,14 +414,17 @@ local MoveExecutioner = {
     getAwayFromObstacle = function (self, state)
         local currentPosition = self.map.position
         local currentAction = self.actions[1]
+        local currentDirection = controller_utils.discreteDirection(state.robotDirection)
         local result = nil
         logger.print(self.map.verticalOffset.offset .. "||" .. self.map.horizontalOffset.offset)
-        if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
-            result = self:handleCancelStraightMove(state, controller_utils.discreteDirection(state.robotDirection))
+        if self.doObstacleHelperAction then
+            result = self:handleHelperMove(state, currentDirection)
+        elseif currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
+            result = self:handleCancelStraightMove(state, currentDirection)
         elseif currentAction == MoveAction.TURN_LEFT then
-            result = self:handleCancelTurnLeftMove(state, controller_utils.discreteDirection(state.robotDirection), currentPosition)
+            result = self:handleCancelTurnLeftMove(state, currentDirection, currentPosition)
         else
-            result = self:handleCancelTurnRightMove(state, controller_utils.discreteDirection(state.robotDirection), currentPosition)
+            result = self:handleCancelTurnRightMove(state, currentDirection, currentPosition)
         end
 
         result.isMoveActionFinished = result.isMoveActionFinished or false
@@ -418,7 +433,7 @@ local MoveExecutioner = {
     end,
 
     handleCancelStraightMove = function (self, state, currentDirection)
-        updateStraightDistanceTravelled(self, state, currentDirection)
+        updateNegativeStraightDistanceTravelled(self, state, currentDirection)
         local distanceTravelled = getDistanceTravelled(self, currentDirection)
         local move = self.actions[1]
         if move == MoveAction.GO_AHEAD and distanceTravelled <= 0 then
@@ -456,31 +471,35 @@ local MoveExecutioner = {
 
     handleCancelTurnMove = function (self, turnDirection, state, currentPosition, currentDirection, isRobotTurning)
         if isRobotTurning and state.robotDirection.direction == self.oldDirection then
-            if currentPosition == Position:new(0,0) then
-                changeAction(self, 1, MoveAction.GO_AHEAD)
-                return { action = RobotAction.goBack({}, {1, 2}) }
-            else
-                if self.planner.actions[1] == self.actions[1] and #self.planner.actions == self.numberOfOriginalActions then
-                    return {
-                        isMoveActionFinished = true,
-                        position = currentPosition
-                    }
-                else 
-                    --[[
-                        It's important to obtain a positive value for the distance travelled in order to follow the algorithm
-                        logics. The position must be moved to the previous cell too. this logic applies only if the turn action
-                        isn't the first action performed by the robot.
-                    ]]
-                    updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
-                    return {
-                        isMoveActionFinished = true,
-                        position = MoveAction.nextPosition(
-                            currentPosition,
-                            currentDirection,
-                            MoveAction.GO_BACK
-                        )
-                    }
-                end
+            local isMoveFinished = true
+            local action = nil
+            if helpers.canRobotGoBack(self, currentPosition, currentDirection) then
+                isMoveFinished = false
+                action = RobotAction.goBack({}, {1, 2})
+                self.doObstacleHelperAction = true
+            end
+            if self.planner.actions[1] == self.actions[1] and #self.planner.actions == self.numberOfOriginalActions then
+                return {
+                    isMoveActionFinished = isMoveFinished,
+                    action = action,
+                    position = currentPosition
+                }
+            else 
+                --[[
+                    It's important to obtain a positive value for the distance travelled in order to follow the algorithm
+                    logics. The position must be moved to the previous cell too. this logic applies only if the turn action
+                    isn't the first action performed by the robot.
+                ]]
+                updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
+                return {
+                    isMoveActionFinished = isMoveFinished,
+                    action = action,
+                    position = MoveAction.nextPosition(
+                        currentPosition,
+                        currentDirection,
+                        MoveAction.GO_BACK
+                    )
+                }
             end
         else
             if turnDirection == MoveAction.TURN_LEFT then
@@ -502,6 +521,31 @@ local MoveExecutioner = {
                     }, {1, 2})
                 }
             end
+        end
+    end,
+
+    --[[ --------- HANDLE OBSTACLE HELPER MOVE ---------- ]]
+
+    handleHelperMove = function (self, state, currentDirection)
+        if state.wheels.distance_left < state.wheels.distance_right then
+            self.helperActionOffset = self.helperActionOffset + state.wheels.distance_left
+        else
+            self.helperActionOffset = self.helperActionOffset + state.wheels.distance_right
+        end
+        updateNegativeStraightDistanceTravelled(self, state, currentDirection)
+        local offset = getDistanceTravelled(self, currentDirection)
+        local position = self.map.position
+        if offset <= -robot_parameters.squareSideDimension then
+            updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
+            position = MoveAction.nextPosition(self.map.position, currentDirection, MoveAction.GO_BACK)
+        end
+
+        if self.helperActionOffset <= -robot_parameters.distanceToGoBackWithObstacles then
+            self.helperActionOffset = 0
+            self.doObstacleHelperAction = false
+            return { isMoveActionFinished = true, position = position }
+        else
+            return { action = RobotAction.goBack({}, {1, 2}), position = position }
         end
     end,
 

@@ -2,8 +2,10 @@ local helpers = {}
 
 local MoveAction = require('robot.controller.planner.move_action')
 local Direction = require('util.commons').Direction
+local Position = require('util.commons').Position
 local robot_parameters = require('robot.parameters')
 local logger = require('util.logger')
+local CellStatus = require('robot.controller.map.cell_status')
 
 local LEFT_DISTANCE_WHILE_GOING_STRAIGHT = 0.95
 local RIGHT_DISTANCE_WHILE_GOING_STRAIGHT = 0.95
@@ -48,13 +50,25 @@ function helpers.getAxisOffsets(moveExecutioner, currentDirection)
     end
 end
 
+function helpers.canRobotGoBack(moveExecutioner, currentPosition, currentDirection)
+    local forwardPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_AHEAD)
+    local backPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK)
+
+    return currentPosition == Position:new(0,0) and currentDirection == Direction.SOUTH
+        or currentDirection == Position:new(0,0) and currentDirection == Direction.EAST
+        or moveExecutioner.map:getCell(forwardPosition) == CellStatus.OBSTACLE
+        and moveExecutioner.map:getCell(backPosition) ~= CellStatus.OBSTACLE
+        and not (currentPosition.lat == 0 and currentDirection == Direction.NORTH)
+        and not (currentPosition.lng == 0 and currentDirection == Direction.WEST)
+end
+
 function helpers.determineObstaclePosition (moveExecutioner, currentPosition, currentDirection, isObstacleToX, isRobotTurning)
     isObstacleToX = isObstacleToX or {left = false, right = false, front = false, back = false}
     isRobotTurning = isRobotTurning or false
     local currentAction = moveExecutioner.actions[1]
     local oldDirection = moveExecutioner.oldDirection
 
-    local currentAxisOffset, otherAxisOffset = helpers.getAxisOffsets(moveExecutioner, currentDirection)
+    local currentAxisOffset, otherAxisOffset = helpers.getAxisOffsets(moveExecutioner, oldDirection)
     local bounds = {
         mainAxisInBetweenNextCell = currentAxisOffset >= robot_parameters.squareSideDimension / 2,
         mainAxisInBetweenPreviousCell = currentAxisOffset <= -robot_parameters.squareSideDimension / 2,

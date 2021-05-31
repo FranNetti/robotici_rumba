@@ -4,7 +4,7 @@ local Battery = require('robot.sensors').Battery
 local ROBOT_INITIAL_DIRECTION = Direction.NORTH
 
 local SQUARE_SIDE_DIMENSION = 12
-local DISTANCE_TO_GO_BACK_WHEN_HOME = 1.5
+local DISTANCE_TO_GO_WITH_OBSTACLES = 3
 
 local ROBOT_FORWARD_SPEED = 10
 local ROBOT_REVERSE_SPEED = -5
@@ -20,7 +20,7 @@ return {
     robotInitialDirection = ROBOT_INITIAL_DIRECTION,
 
     squareSideDimension = SQUARE_SIDE_DIMENSION,
-    distanceToGoBackWhenHome = DISTANCE_TO_GO_BACK_WHEN_HOME,
+    distanceToGoBackWithObstacles= DISTANCE_TO_GO_WITH_OBSTACLES,
 
     robotForwardSpeed = ROBOT_FORWARD_SPEED,
     robotReverseSpeed = ROBOT_REVERSE_SPEED,
