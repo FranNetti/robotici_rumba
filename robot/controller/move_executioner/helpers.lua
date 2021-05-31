@@ -8,10 +8,14 @@ local logger = require('util.logger')
 local LEFT_DISTANCE_WHILE_GOING_STRAIGHT = 0.95
 local RIGHT_DISTANCE_WHILE_GOING_STRAIGHT = 0.95
 
-function helpers.isObstacleInTheOppositeDirection(isObstacleToX, currentDirection, currentAction, oldDirection)
-    return currentDirection == oldDirection and isObstacleToX.front
-        or currentAction == MoveAction.TURN_LEFT and isObstacleToX.right
+function helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction)
+    return currentAction == MoveAction.TURN_LEFT and isObstacleToX.right
         or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.left
+end
+
+function helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction)
+    return currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
+        or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right
 end
 
 function helpers.isObstacleCloseToTheLeft(state)
@@ -61,16 +65,6 @@ function helpers.determineObstaclePosition (moveExecutioner, currentPosition, cu
     bounds.mainAxisInCell = not bounds.mainAxisInBetweenNextCell and not bounds.mainAxisInBetweenPreviousCell
     bounds.otherAxisInCell = not bounds.otherAxisInBetweenNextCell and not bounds.otherAxisInBetweenPreviousCell
 
-    logger.stringify(currentAction)
-    logger.stringify(currentPosition)
-    logger.stringify(currentDirection)
-    logger.stringify(oldDirection)
-    logger.stringify(isObstacleToX)
-    logger.stringify(otherAxisOffset)
-    logger.stringify(bounds)
-
-    logger.stringify('----------------------------------')
-
     if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
         local nextPosition = MoveAction.nextPosition(currentPosition, currentDirection, currentAction)
         if bounds.otherAxisInBetweenNextCell then
@@ -94,133 +88,124 @@ function helpers.determineObstaclePosition (moveExecutioner, currentPosition, cu
         end
 
         local turnCell = MoveAction.nextPosition(currentPosition, oldDirection, currentAction)
-        local upperCell = MoveAction.nextPosition(currentPosition, oldDirection, MoveAction.GO_AHEAD)
-        local upperTurnCell = MoveAction.nextPosition(upperCell, oldDirection, currentAction)
         local oppositeTurnCell = MoveAction.nextPosition(currentPosition, oldDirection, oppositeAction)
+        local upperCell = MoveAction.nextPosition(currentPosition, oldDirection, MoveAction.GO_AHEAD)
+        local lowerCell = MoveAction.nextPosition(currentPosition, oldDirection, MoveAction.GO_BACK)
+        local upperTurnCell = MoveAction.nextPosition(upperCell, oldDirection, currentAction)
+        local lowerTurnCell = MoveAction.nextPosition(lowerCell, oldDirection, currentAction)
         local oppositeUpperTurnCell = MoveAction.nextPosition(upperCell, oldDirection, oppositeAction)
 
-
         if bounds.mainAxisInCell and bounds.otherAxisInCell then
-            if currentDirection ~= oldDirection and (currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right) then
+            if currentDirection ~= oldDirection 
+                and helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
                 return { turnCell }
             else
                 return { upperCell }
             end
         elseif bounds.mainAxisInBetweenNextCell and bounds.otherAxisInCell then
-            if currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right then
+            if helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) and currentDirection == oldDirection
+                or (not helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) and currentDirection ~= oldDirection)  then
                 return { upperTurnCell }
+            elseif helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
+                return {turnCell}
             else
                 return { upperCell }
             end
         elseif bounds.mainAxisInBetweenPreviousCell and bounds.otherAxisInCell then
-            if currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right then
+            if helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) and currentDirection == oldDirection
+                or (not helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) and currentDirection ~= oldDirection)  then
                 return { turnCell }
+            elseif helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
+                return {lowerTurnCell}
             else
                 return { currentPosition }
             end
         elseif bounds.otherAxisInBetweenNextCell and bounds.mainAxisInCell then
-            if currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right then
+            if helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
                 return { turnCell }
-            elseif currentDirection ~= oldDirection then
-                return { upperTurnCell }
-            elseif isObstacleToX.front then
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction)
+                and currentDirection == oldDirection then
+                return { upperCell }
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction) then
+                return {upperTurnCell}
+            elseif isObstacleToX.front and currentDirection == oldDirection then
                 return { upperCell, upperTurnCell }
             else
-                return { upperCell }
+                return { upperTurnCell, turnCell }
             end
         elseif bounds.otherAxisInBetweenPreviousCell and bounds.mainAxisInCell then
-            if currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right then
+            if helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
                 return { currentPosition }
-            elseif currentDirection ~= oldDirection then
-                return { upperCell }
-            elseif isObstacleToX.front then
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction)
+                and currentDirection == oldDirection then
+                return { oppositeUpperTurnCell }
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction) then
+                return {upperCell}
+            elseif isObstacleToX.front and currentDirection == oldDirection then
                 return { upperCell, oppositeUpperTurnCell }
             else
-                return { oppositeUpperTurnCell }
+                return { upperCell, currentPosition }
             end
         elseif bounds.mainAxisInBetweenNextCell and bounds.otherAxisInBetweenNextCell then
-            if currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right then
+            if helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction)
+                and currentDirection == oldDirection then
                 return { upperTurnCell }
-            elseif currentAction == MoveAction.TURN_LEFT and isObstacleToX.right
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.left then
+            elseif helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
+                return { turnCell }
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction)
+                and currentDirection == oldDirection then
                 return { upperCell }
-            elseif currentDirection == oldDirection then
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction) then
+                return {upperTurnCell}
+            elseif isObstacleToX.front and currentDirection == oldDirection then
                 return { upperCell, upperTurnCell }
             else
                 return { turnCell, upperTurnCell }
             end
         elseif bounds.mainAxisInBetweenPreviousCell and bounds.otherAxisInBetweenPreviousCell then
-            if currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right
-                or currentDirection ~= oldDirection then
+            if helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction)
+                and currentDirection == oldDirection then
                 return { currentPosition }
-            elseif isObstacleToX.front then
+            elseif helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
+                return { lowerCell }
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction)
+                and currentDirection == oldDirection then
+                return { oppositeTurnCell }
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction) then
+                return {currentPosition}
+            elseif isObstacleToX.front and currentDirection == oldDirection then
                 return { currentPosition, oppositeTurnCell }
             else
-                return { oppositeTurnCell }
+                return { currentPosition, lowerCell }
             end
         elseif bounds.mainAxisInBetweenNextCell and bounds.otherAxisInBetweenPreviousCell then
-            if currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right then
+            if helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) and currentDirection == oldDirection
+                or (not helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) and currentDirection ~= oldDirection) then
                 return { upperCell }
-            elseif isObstacleToX.front and currentDirection ~= oldDirection then
-                return { upperCell }
-            elseif isObstacleToX.front then
-                return { upperTurnCell }
+            elseif helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
+                return {currentPosition}
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction) then
+                return {oppositeUpperTurnCell}
             else
-                return { oppositeUpperTurnCell }
+                return { upperCell, upperTurnCell }
             end
         else
-            if currentAction == MoveAction.TURN_LEFT and isObstacleToX.left
-                or currentAction == MoveAction.TURN_RIGHT and isObstacleToX.right
-                or currentDirection ~= oldDirection then
+            if helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction)
+                and currentDirection == oldDirection then
                 return { turnCell }
-            elseif isObstacleToX.front then
+            elseif helpers.isObstacleInSameTurnDirection(isObstacleToX, currentAction) then
+                return { lowerTurnCell }
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction)
+                and currentDirection == oldDirection then
+                return { currentPosition }
+            elseif helpers.isObstacleInTheOppositeTurnDirection(isObstacleToX, currentAction) then
+                return {turnCell}
+            elseif isObstacleToX.front and currentDirection == oldDirection then
                 return { currentPosition, turnCell }
             else
-                return { currentPosition }
+                return { turnCell, lowerTurnCell }
             end
         end
-
-
-
-        --[[ local rightPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.TURN_RIGHT)
-        local leftPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.TURN_LEFT)
-        if isRobotTurning and helpers.isObstacleInTheOppositeDirection(isObstacleToX, currentDirection, currentAction, oldDirection) then
-            if isRobotInBetweenNextCell and currentAction == MoveAction.TURN_LEFT then
-                return { rightPosition }
-            elseif isRobotInBetweenPreviuosCell and currentAction == MoveAction.TURN_RIGHT then
-                return { leftPosition }
-            else
-                return { currentPosition }
-            end
-        elseif isRobotTurning then
-            if currentAction == MoveAction.TURN_RIGHT and ( isRobotInBetweenNextCell or not isRobotInBetweenPreviuosCell ) then
-                return { rightPosition }
-            elseif currentAction == MoveAction.TURN_LEFT and ( isRobotInBetweenPreviuosCell or not isRobotInBetweenNextCell ) then
-                return { leftPosition }
-            else
-                return { currentPosition }
-            end
-        else
-            if isObstacleToX.left and not isRobotInBetweenNextCell then
-                return { leftPosition }
-            elseif isObstacleToX.right and not isRobotInBetweenPreviuosCell then
-                return { rightPosition }
-            elseif isRobotInBetweenPreviuosCell or isRobotInBetweenNextCell then
-                return { currentPosition }
-            else
-                return {
-                    MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_AHEAD)
-                }
-            end
-        end ]]
     end
 end
 

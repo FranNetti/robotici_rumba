@@ -20,12 +20,13 @@ RoomCoverage = {
     ---@param map table Map the map of the robot
     ---@return table a new behaviour
     new = function (self, map)
+        local planner = Planner:new(map.map)
         local o = {
             map = map,
             state = State.STAND_BY,
-            planner = Planner:new(map.map),
+            planner = planner,
             target = Position:new(0,0),
-            moveExecutioner = MoveExecutioner:new(map),
+            moveExecutioner = MoveExecutioner:new(map, planner),
             oldState = nil,
             lastKnownPosition = nil,
         }
@@ -226,11 +227,12 @@ RoomCoverage = {
             if self.oldState == State.EXPLORING then
                 self.planner:addNewDiagonalPoint(self.target.lat + 1)
                 self.map:addNewDiagonalPoint(self.target.lat + 1)
+
                 local actions = self.planner:getActionsTo(
                     self.map.position,
                     self.target,
                     controller_utils.discreteDirection(state.robotDirection),
-                    controller_utils.getExcludedOptionsByState(state)
+                    controller_utils.getExcludedOptionsAfterObstacle(self.moveExecutioner.actions[1], state)
                 )
 
                 if actions ~= nil and #actions > 0 then

@@ -127,14 +127,16 @@ Planner = {
             self.encodeCoordinatesFromPosition(destination),
             function (pointA, pointB)
 
-                if pointA == backPosition or pointB == backPosition then
+                local x1, y1 = Planner.decodeCoordinates(pointA)
+                local x2, y2 = Planner.decodeCoordinates(pointB)
+
+                if self.map[x1][y1] == CellStatus.OBSTACLE or self.map[x2][y2] == CellStatus.OBSTACLE then
+                    return helpers.OBSTACLE_CELL_COST
+                elseif pointA == backPosition or pointB == backPosition then
                     return helpers.BACK_OPTION_COST
                 elseif excludePositions:contain(pointA) or excludePositions:contain(pointB) then
                     return helpers.EXCLUDED_OPTIONS_COST
                 end
-
-                local x1, y1 = Planner.decodeCoordinates(pointA)
-                local x2, y2 = Planner.decodeCoordinates(pointB)
 
                 local cost = aStar.manhattanDistance(x1, y1, x2, y2)
                 if self.map[x2][y2] == CellStatus.TO_EXPLORE or not areNewCellsToExploreMoreImportant then
@@ -153,6 +155,11 @@ Planner = {
     ---@param areNewCellsToExploreMoreImportant boolean if the cells to yet explore are more important than the ones already explored
     ---@return table list of action to do to reach the destination
     getActionsTo = function (self, start, destination, direction, excludeOptions, areNewCellsToExploreMoreImportant)
+        if self.map[destination.lat][destination.lng] == CellStatus.OBSTACLE then
+            self.actions = {}
+            return {}
+        end
+
         local excludedPositions = helpers.determinePositionsToExclude(
             excludeOptions,
             start,
@@ -173,10 +180,10 @@ Planner = {
     end,
 
     setCellAs = function (self, cellPosition, cellStatus)
-        if cellStatus == CellStatus.OBSTACLE and cellPosition.lat >= 0 and cellPosition.lng >= 0 then
+        --[[ if cellStatus == CellStatus.OBSTACLE and cellPosition.lat >= 0 and cellPosition.lng >= 0 then
             local coordinates = self.encodeCoordinatesFromPosition(cellPosition)
             self.graph:removeVertex(coordinates)
-        end
+        end ]]
     end,
 
     setCellAsDirty = function (self, cellPosition)

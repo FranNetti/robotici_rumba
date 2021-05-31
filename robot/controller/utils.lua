@@ -1,8 +1,11 @@
 local Direction = require('util.commons').Direction
 local Set = require('util.set')
+local logger = require('util.logger')
 
 local ExcludeOption = require('robot.controller.planner.exclude_option')
 local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
+
+local MoveAction = require('robot.controller.planner.move_action')
 
 local utils = {}
 
@@ -46,6 +49,23 @@ function utils.getExcludedOptionsByState(state)
         excludedOptions = Set:new{ExcludeOption.EXCLUDE_LEFT, ExcludeOption.EXCLUDE_RIGHT}
     end ]]
     return excludedOptions
+end
+
+function utils.getExcludedOptionsAfterObstacle(lastAction, state)
+    local optionToExclude
+    if lastAction == MoveAction.GO_AHEAD then
+        optionToExclude = ExcludeOption.EXCLUDE_FRONT
+    elseif lastAction == MoveAction.GO_BACK or lastAction == MoveAction.GO_BACK_BEFORE_TURNING then
+        optionToExclude = ExcludeOption.EXCLUDE_BACK
+    elseif lastAction == MoveAction.TURN_LEFT then
+        optionToExclude = ExcludeOption.EXCLUDE_LEFT
+    else
+        optionToExclude = ExcludeOption.EXCLUDE_RIGHT
+    end
+
+    logger.stringify({optionToExclude, table.unpack(utils.getExcludedOptionsByState(state))})
+
+    return Set:new({optionToExclude}) + utils.getExcludedOptionsByState(state)
 end
 
 return utils

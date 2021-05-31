@@ -3,12 +3,14 @@ local ExcludeOption = require('robot.controller.planner.exclude_option')
 
 local Set = require('util.set')
 local commons = require('util.commons')
+local logger = require('util.logger')
 local Direction = commons.Direction
 
 local helper = {}
 
 helper.EXCLUDED_OPTIONS_COST = 9999999999
 helper.BACK_OPTION_COST = helper.EXCLUDED_OPTIONS_COST * 2
+helper.OBSTACLE_CELL_COST = helper.EXCLUDED_OPTIONS_COST * 3
 
 function helper.determineActions(path, direction, coordinatesDecoder)
     local actions = {}

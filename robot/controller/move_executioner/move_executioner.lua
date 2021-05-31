@@ -66,11 +66,13 @@ end
 
 local MoveExecutioner = {
 
-    new = function (self, map)
+    new = function (self, map, planner)
         local o = {
             map = map,
+            planner = planner,
             oldDirection = Direction.NORTH,
             actions = nil,
+            numberOfOriginalActions = 0,
         }
         setmetatable(o, self)
         self.__index = self
@@ -78,7 +80,7 @@ local MoveExecutioner = {
     end,
 
     setActions = function (self, actions, state)
-        self.actions = actions
+        self.actions = {table.unpack(actions)}
         if self.map.position == Position:new(0,0) then
             local firstAction = self.actions[1]
             local currentDirection = controller_utils.discreteDirection(state.robotDirection)
@@ -87,6 +89,7 @@ local MoveExecutioner = {
                 addActionToHead(self, MoveAction.GO_BACK_BEFORE_TURNING)
             end
         end
+        self.numberOfOriginalActions = #actions
     end,
 
     hasMoreActions = function (self)
@@ -457,19 +460,27 @@ local MoveExecutioner = {
                 changeAction(self, 1, MoveAction.GO_AHEAD)
                 return { action = RobotAction.goBack({}, {1, 2}) }
             else
-                --[[
-                    It's important to obtain a positive value for the distance travelled in order to follow the algorithm
-                    logics. The position must be moved to the previous cell too.
-                ]]
-                updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
-                return {
-                    isMoveActionFinished = true,
-                    position = MoveAction.nextPosition(
-                        currentPosition,
-                        currentDirection,
-                        MoveAction.GO_BACK
-                    )
-                }
+                if self.planner.actions[1] == self.actions[1] and #self.planner.actions == self.numberOfOriginalActions then
+                    return {
+                        isMoveActionFinished = true,
+                        position = currentPosition
+                    }
+                else 
+                    --[[
+                        It's important to obtain a positive value for the distance travelled in order to follow the algorithm
+                        logics. The position must be moved to the previous cell too. this logic applies only if the turn action
+                        isn't the first action performed by the robot.
+                    ]]
+                    updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
+                    return {
+                        isMoveActionFinished = true,
+                        position = MoveAction.nextPosition(
+                            currentPosition,
+                            currentDirection,
+                            MoveAction.GO_BACK
+                        )
+                    }
+                end
             end
         else
             if turnDirection == MoveAction.TURN_LEFT then
