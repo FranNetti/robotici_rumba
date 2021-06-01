@@ -56,10 +56,10 @@ function helpers.canRobotGoBack(moveExecutioner, currentPosition, currentDirecti
 
     return currentPosition.lat == 0 and currentDirection == Direction.SOUTH
         or currentPosition.lng == 0 and currentDirection == Direction.EAST
-        or moveExecutioner.map:getCell(forwardPosition) == CellStatus.OBSTACLE
-        and moveExecutioner.map:getCell(backPosition) ~= CellStatus.OBSTACLE
-        and not (currentPosition.lat == 0 and currentDirection == Direction.NORTH)
+        or not (currentPosition.lat == 0 and currentDirection == Direction.NORTH)
         and not (currentPosition.lng == 0 and currentDirection == Direction.WEST)
+        and moveExecutioner.map:getCell(forwardPosition) == CellStatus.OBSTACLE
+        and moveExecutioner.map:getCell(backPosition) ~= CellStatus.OBSTACLE
 end
 
 function helpers.determineObstaclePosition (moveExecutioner, currentPosition, currentDirection, isObstacleToX, isRobotTurning)
@@ -93,6 +93,108 @@ function helpers.determineObstaclePosition (moveExecutioner, currentPosition, cu
             }
         else
             return { nextPosition }
+        end
+    elseif not isRobotTurning then
+
+        local frontPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_AHEAD)
+        local backPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK)
+        local leftPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.TURN_LEFT)
+        local rightPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.TURN_RIGHT)
+        local frontLeftPosition = MoveAction.nextPosition(frontPosition, currentDirection, MoveAction.TURN_LEFT)
+        local frontRightPosition = MoveAction.nextPosition(frontPosition, currentDirection, MoveAction.TURN_RIGHT)
+        local backLeftPosition = MoveAction.nextPosition(backPosition, currentDirection, MoveAction.TURN_LEFT)
+        local backRightPosition = MoveAction.nextPosition(backPosition, currentDirection, MoveAction.TURN_RIGHT)
+
+        if bounds.mainAxisInCell and bounds.otherAxisInCell then
+            if isObstacleToX.left then
+                return { leftPosition }
+            elseif isObstacleToX.right then
+                return { rightPosition }
+            elseif isObstacleToX.front then
+                return { frontPosition }
+            else
+                return {backPosition}
+            end
+        elseif bounds.mainAxisInBetweenNextCell and bounds.otherAxisInCell then
+            if isObstacleToX.left then
+                return { frontLeftPosition }
+            elseif isObstacleToX.right then
+                return { frontRightPosition }
+            elseif isObstacleToX.front then
+                return { frontPosition }
+            else
+                return {currentPosition}
+            end
+        elseif bounds.mainAxisInBetweenPreviousCell and bounds.otherAxisInCell then
+            if isObstacleToX.left then
+                return { leftPosition }
+            elseif isObstacleToX.right then
+                return { rightPosition }
+            elseif isObstacleToX.front then
+                return { currentPosition }
+            else
+                return {backPosition}
+            end
+        elseif bounds.otherAxisInBetweenNextCell and bounds.mainAxisInCell then
+            if isObstacleToX.left then
+                return { leftPosition }
+            elseif isObstacleToX.right then
+                return { currentPosition }
+            elseif isObstacleToX.front then
+                return { frontLeftPosition, frontPosition }
+            else
+                return {backPosition, backLeftPosition}
+            end
+        elseif bounds.otherAxisInBetweenPreviousCell and bounds.mainAxisInCell then
+            if isObstacleToX.left then
+                return { currentPosition }
+            elseif isObstacleToX.right then
+                return { rightPosition }
+            elseif isObstacleToX.front then
+                return { frontPosition, frontRightPosition }
+            else
+                return {backPosition, backRightPosition}
+            end
+        elseif bounds.mainAxisInBetweenNextCell and bounds.otherAxisInBetweenNextCell then
+            if isObstacleToX.left then
+                return { frontLeftPosition }
+            elseif isObstacleToX.right then
+                return { frontPosition }
+            elseif isObstacleToX.front then
+                return { frontPosition, frontLeftPosition }
+            else
+                return {currentPosition, leftPosition}
+            end
+        elseif bounds.mainAxisInBetweenPreviousCell and bounds.otherAxisInBetweenPreviousCell then
+            if isObstacleToX.left then
+                return { currentPosition }
+            elseif isObstacleToX.right then
+                return { rightPosition }
+            elseif isObstacleToX.front then
+                return { currentPosition, rightPosition }
+            else
+                return {backPosition, backRightPosition}
+            end
+        elseif bounds.mainAxisInBetweenNextCell and bounds.otherAxisInBetweenPreviousCell then
+            if isObstacleToX.left then
+                return { frontPosition }
+            elseif isObstacleToX.right then
+                return { frontRightPosition }
+            elseif isObstacleToX.front then
+                return { frontPosition, frontRightPosition }
+            else
+                return {currentPosition, rightPosition}
+            end
+        else
+            if isObstacleToX.left then
+                return { leftPosition }
+            elseif isObstacleToX.right then
+                return { currentPosition }
+            elseif isObstacleToX.front then
+                return { frontPosition, leftPosition }
+            else
+                return {backPosition, backLeftPosition}
+            end
         end
     else
 

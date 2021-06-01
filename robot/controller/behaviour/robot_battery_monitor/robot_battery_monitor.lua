@@ -20,6 +20,7 @@ local Subsumption = require('robot.controller.subsumption')
 local GOING_TO_CHARGING_STATION_COLOR = Color.ORANGE
 local CHARGING_COLOR = Color.GREEN
 local MARGIN_AUTONOMY = 0.75
+local MAX_BATTERY_PERCENTAGE_BEFORE_GOING_HOME = 0.05
 local LEVELS_TO_SUBSUME = {3, 4, 5}
 
 local function getAvailableBatteryEnoughToJustGoBackHome(robotBatteryMonitor, state)
@@ -147,7 +148,9 @@ RoomMonitor = {
             self.stepCounter = 0
             local batteryDifference = getAvailableBatteryEnoughToJustGoBackHome(self, state)
             self.checkFrequency = getCheckBatteryLevelFrequency(batteryDifference)
-            if batteryDifference <= 0 and isRobotNotTurning(state) then
+            local batteryPercentage = state.batteryLevel / Battery.BATTERY_MAX_VALUE
+            if (batteryDifference <= 0 or batteryPercentage <= MAX_BATTERY_PERCENTAGE_BEFORE_GOING_HOME)
+                and isRobotNotTurning(state) then
                 handleStopMove(self, state)
                 computeActionsToHome(self, state)
                 self.state = State.ALERT_GOING_CHARGING_STATION
@@ -155,7 +158,7 @@ RoomMonitor = {
                     switchedOn = true,
                     color = GOING_TO_CHARGING_STATION_COLOR
                 }}, { Subsumption.subsumeAll })
-            elseif batteryDifference <= 0 then
+            elseif batteryDifference <= 0 or batteryPercentage <= MAX_BATTERY_PERCENTAGE_BEFORE_GOING_HOME then
                 return RobotAction:new({leds = {
                     switchedOn = true,
                     color = GOING_TO_CHARGING_STATION_COLOR

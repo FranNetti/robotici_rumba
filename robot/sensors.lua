@@ -44,11 +44,11 @@ Sensors.Battery = {
         if self.recharge and (self.stepCount % self.BATTERY_STEP_INCREASE_FREQUENCY == 0) then
             self.batteryLevel = self.batteryLevel + 1;
             if self.batteryLevel > self.BATTERY_MAX_VALUE then self.batteryLevel = self.BATTERY_MAX_VALUE end
-            logger.print("---- [Battery Charge] " .. self.batteryLevel .. "V ----", LogLevel.INFO)
+            logger.print("---- [Battery Charging]... " .. self.batteryLevel .. "V ----", LogLevel.INFO)
         elseif not self.recharge and (self.stepCount % self.BATTERY_STEP_DECREASE_FREQUENCY == 0) then
             self.batteryLevel = self.batteryLevel - 1;
             if self.batteryLevel < 0 then self.batteryLevel = 0 end
-            logger.print("----  [Battery Charging] " .. self.batteryLevel .. "V ----", LogLevel.INFO)
+            logger.print("----  [Battery Charge] " .. self.batteryLevel .. "V ----", LogLevel.INFO)
         end
     end;
 }

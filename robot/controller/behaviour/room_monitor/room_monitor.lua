@@ -134,9 +134,11 @@ RoomMonitor = {
             return self:working(state)
         elseif state.roomTemperature < TEMPERATURE_THRESHOLD_LOWER_LIMIT and isRobotNotTurning(state) then
             self.state = State.WORKING
+            handleStopMove(self, state)
             return RobotAction:new({})
         elseif self.map.position == Position:new(0,0) then
             self.state = State.ALERT
+            handleStopMove(self, state)
             return RobotAction.stayStill({
                 leds = { switchedOn = true, color = ALERT_LED_COLOR }
             }, { Subsumption.subsumeAll })

@@ -4,6 +4,7 @@ local controller_utils = require('robot.controller.utils')
 local Planner = require('robot.controller.planner.planner')
 local Position = require('util.commons').Position
 local Pair = require('extensions.lua.pair')
+local logger = require('util.logger')
 
 local helpers = {}
 
@@ -31,7 +32,9 @@ function helpers.getFastestRoute(yen, state, currentPosition, lastAction, obstac
         excludedOptions,
         currentPosition,
         currentDirection,
-        Planner.encodeCoordinates
+        function (lat, lng)
+            return Position:new(lat, lng)
+        end
     )
     excludePositions:add(MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK))
 
