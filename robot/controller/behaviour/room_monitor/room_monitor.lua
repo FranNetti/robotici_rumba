@@ -19,13 +19,6 @@ local TEMPERATURE_THRESHOLD_LOWER_LIMIT = 27
 local ALERT_LED_COLOR = Color.CYAN
 local LEVELS_TO_SUBSUME = {3, 4}
 
-local function isRobotNotTurning(state)
-    return not (state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
-        and state.wheels.velocity_right ~= 0
-        or state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
-        and state.wheels.velocity_left ~= 0)
-end
-
 local function computeActionsToHome(roomMonitor, state)
     local excludedOptions = controller_utils.getExcludedOptionsByState(state)
     local currentDirection = controller_utils.discreteDirection(state.robotDirection)
@@ -90,7 +83,7 @@ RoomMonitor = {
     --[[ --------- WORKING ---------- ]]
 
     working = function (self, state)
-        if state.roomTemperature >= TEMPERATURE_THRESHOLD_UPPER_LIMIT and isRobotNotTurning(state) then
+        if state.roomTemperature >= TEMPERATURE_THRESHOLD_UPPER_LIMIT and controller_utils.isRobotNotTurning(state) then
             self.lastKnownPosition = self.map.position
             if self.map.position ~= Position:new(0,0) then
                 handleStopMove(self, state)
@@ -132,7 +125,7 @@ RoomMonitor = {
         if self.lastKnownPosition ~= self.map.position then
             self.state = State.WORKING
             return self:working(state)
-        elseif state.roomTemperature < TEMPERATURE_THRESHOLD_LOWER_LIMIT and isRobotNotTurning(state) then
+        elseif state.roomTemperature < TEMPERATURE_THRESHOLD_LOWER_LIMIT and controller_utils.isRobotNotTurning(state) then
             self.state = State.WORKING
             handleStopMove(self, state)
             return RobotAction:new({})

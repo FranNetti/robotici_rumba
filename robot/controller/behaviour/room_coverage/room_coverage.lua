@@ -49,7 +49,6 @@ RoomCoverage = {
         elseif self.state == State.EXPLORED then
             return self:explored(roomState)
         elseif self.state == State.RECOVERY then
-            -- logger.print('Calling recovery with state ' .. self.state, LogLevel.INFO)
             return self:recovery(roomState)
         else
             logger.printToConsole('[ROOM_COVERAGE] Unknown state: ' .. self.state, LogLevel.WARNING)
@@ -188,10 +187,6 @@ RoomCoverage = {
     --[[ ---------- TARGET REACHED --------- ]]
 
     targetReached = function (self, state)
-
-        --[[ if self.oldState == State.RECOVERY then
-            logger.print('dentro target reached dopo recoveryyyy')
-        end ]]
 
         if self.map.isPerimeterIdentified then
             self.state = State.PERIMETER_IDENTIFIED

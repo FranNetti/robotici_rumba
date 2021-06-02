@@ -54,10 +54,17 @@ function helpers.canRobotGoBack(moveExecutioner, currentPosition, currentDirecti
     local forwardPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_AHEAD)
     local backPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK)
 
+    local mainOffset = moveExecutioner.map:getVerticalOffset(currentDirection)
+    if currentDirection == Direction.EAST or currentDirection == Direction.WEST then
+        mainOffset = moveExecutioner.map:getHorizontalOffset(currentDirection)
+    end
+
     return currentPosition.lat == 0 and currentDirection == Direction.SOUTH
         or currentPosition.lng == 0 and currentDirection == Direction.EAST
-        or not (currentPosition.lat == 0 and currentDirection == Direction.NORTH)
-        and not (currentPosition.lng == 0 and currentDirection == Direction.WEST)
+        or currentPosition.lat == 0 and currentDirection == Direction.NORTH and mainOffset >= robot_parameters.distanceToGoBackWithObstacles
+        or currentPosition.lng == 0 and currentDirection == Direction.WEST and mainOffset >= robot_parameters.distanceToGoBackWithObstacles
+        or not (currentPosition.lat == 0 and currentDirection == Direction.NORTH and mainOffset < robot_parameters.distanceToGoBackWithObstacles)
+        and not (currentPosition.lng == 0 and currentDirection == Direction.WEST and mainOffset < robot_parameters.distanceToGoBackWithObstacles)
         and moveExecutioner.map:getCell(forwardPosition) == CellStatus.OBSTACLE
         and moveExecutioner.map:getCell(backPosition) ~= CellStatus.OBSTACLE
 end
@@ -79,25 +86,17 @@ function helpers.determineObstaclePosition (moveExecutioner, currentPosition, cu
     bounds.mainAxisInCell = not bounds.mainAxisInBetweenNextCell and not bounds.mainAxisInBetweenPreviousCell
     bounds.otherAxisInCell = not bounds.otherAxisInBetweenNextCell and not bounds.otherAxisInBetweenPreviousCell
 
-    if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
-        local nextPosition = MoveAction.nextPosition(currentPosition, currentDirection, currentAction)
-        if bounds.otherAxisInBetweenNextCell then
-            return {
-                nextPosition,
-                MoveAction.nextPosition(nextPosition, currentDirection, MoveAction.TURN_RIGHT)
-            }
-        elseif bounds.otherAxisInBetweenPreviuosCell then
-            return {
-                nextPosition,
-                MoveAction.nextPosition(nextPosition, currentDirection, MoveAction.TURN_LEFT)
-            }
-        else
-            return { nextPosition }
-        end
-    elseif not isRobotTurning then
+    if currentAction == MoveAction.GO_AHEAD or currentAction == MoveAction.GO_BACK
+        or currentAction == MoveAction.GO_BACK_BEFORE_TURNING or not isRobotTurning then
 
         local frontPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_AHEAD)
         local backPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK)
+        if currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
+            local temp = frontPosition
+            frontPosition = backPosition
+            backPosition = temp
+        end
+
         local leftPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.TURN_LEFT)
         local rightPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.TURN_RIGHT)
         local frontLeftPosition = MoveAction.nextPosition(frontPosition, currentDirection, MoveAction.TURN_LEFT)

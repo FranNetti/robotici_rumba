@@ -9,20 +9,17 @@ algorithm.__index = algorithm
 
 local MAX_COST = 10000000000
 
-local function distanceFunction(self, p1, p2)
-    local x1, y1 = self.decodeFunction(p1)
-    local x2, y2 = self.decodeFunction(p2)
-
+local function distanceFunction(self, p1, p2, distanceFunc)
     if table.containsAny(self.nodesToExclude, {p1 , p2}) then
         return MAX_COST
     elseif table.contains(self.edgeToExclude, Pair:new(p1, p2)) then
         return MAX_COST
     else
-        return a_star.manhattanDistance(x1, y1, x2, y2)
+        return distanceFunc(p1, p2)
     end
 end
 
-function algorithm:getKPath(start, goal, K, _excludePositions)
+function algorithm:getKPath(start, goal, K, _excludePositions, distanceFunc)
     _excludePositions = _excludePositions or {}
     local edgeToExclude, excludePositions = {}, {}
     local startEncoded = self.encodeFunction(start)
@@ -44,7 +41,7 @@ function algorithm:getKPath(start, goal, K, _excludePositions)
         startEncoded,
         goalEncoded,
         function (p1, p2)
-            return distanceFunction(self, p1, p2)
+            return distanceFunction(self, p1, p2, distanceFunc)
         end
     )
 
@@ -84,7 +81,7 @@ function algorithm:getKPath(start, goal, K, _excludePositions)
             local spurPath = a_star.create(self.graph):getPath(
                 spurNode, goalEncoded,
                 function (p1, p2)
-                    return distanceFunction(self, p1, p2)
+                    return distanceFunction(self, p1, p2, distanceFunc)
                 end
             )
 

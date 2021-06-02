@@ -28,7 +28,6 @@ local function isRobotNearLastKnownPosition(oldPosition, newPosition)
 end
 
 local function getFirstDirtyCell(map, dirtPositionsToSkip)
-    --logger.print('get first dirty cell', LogLevel.WARNING)
     local length = #map.map
     dirtPositionsToSkip = dirtPositionsToSkip or Set:new{}
     for i = 0, length do
@@ -82,13 +81,6 @@ local function detectDirtyPositions(state, map, currentPositiom, oldDirection)
     return { currentPositiom }
 end
 
-local function isRobotTurning(state)
-    return state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
-        and state.wheels.velocity_right ~= 0
-        or state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
-        and state.wheels.velocity_left ~= 0
-end
-
 RoomCleaner = {
 
     new = function (self, map)
@@ -134,12 +126,11 @@ RoomCleaner = {
             return self:handleDifferentPosition(state)
         end
 
-        --logger.print('working', LogLevel.WARNING)
         if self.map:getCurrentCell() == CellStatus.DIRTY then
             self.map:setCellAsClean(self.map.position)
         end
 
-        if not isRobotTurning(state) then
+        if controller_utils.isRobotNotTurning(state) then
             --[[
                 update the direction only if the robot is not turning
                 since in that case the direction may change in any moment

@@ -1,10 +1,9 @@
 local Direction = require('util.commons').Direction
 local Set = require('util.set')
 local logger = require('util.logger')
+local robot_parameters = require('robot.parameters')
 
 local ExcludeOption = require('robot.controller.planner.exclude_option')
-local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
-
 local MoveAction = require('robot.controller.planner.move_action')
 
 local utils = {}
@@ -63,6 +62,21 @@ function utils.getExcludedOptionsAfterObstacle(lastAction, state)
         optionToExclude = ExcludeOption.EXCLUDE_RIGHT
     end
     return Set:new({optionToExclude}) + utils.getExcludedOptionsByState(state)
+end
+
+function utils.isRobotTurning(state)
+    return state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
+        and state.wheels.velocity_right == robot_parameters.robotTurningSpeed
+        or state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
+        and state.wheels.velocity_left == robot_parameters.robotTurningSpeed
+        or state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
+        and state.wheels.velocity_right == - robot_parameters.robotTurningSpeed
+        or state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
+        and state.wheels.velocity_left == - robot_parameters.robotTurningSpeed
+end
+
+function utils.isRobotNotTurning(state)
+    return not utils.isRobotTurning(state)
 end
 
 return utils

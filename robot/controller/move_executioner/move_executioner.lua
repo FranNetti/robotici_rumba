@@ -203,7 +203,9 @@ local MoveExecutioner = {
                     obstaclePositions = helpers.determineObstaclePosition(
                         self,
                         newPosition,
-                        currentDirection
+                        currentDirection,
+                        isObstacleToX,
+                        false
                     )
                 }
             else
@@ -218,7 +220,9 @@ local MoveExecutioner = {
                 obstaclePositions = helpers.determineObstaclePosition(
                     self,
                     currentPosition,
-                    currentDirection
+                    currentDirection,
+                    isObstacleToX,
+                    false
                 )
             }
         elseif nextAction == MoveAction.TURN_LEFT or nextAction == MoveAction.TURN_RIGHT then
@@ -341,7 +345,9 @@ local MoveExecutioner = {
                     obstaclePositions = helpers.determineObstaclePosition(
                         self,
                         newPosition,
-                        currentDirection
+                        currentDirection,
+                        isObstacleToX,
+                        false
                     )
                 }
             elseif nextAction == MoveAction.TURN_LEFT
@@ -367,7 +373,9 @@ local MoveExecutioner = {
                 obstaclePositions = helpers.determineObstaclePosition(
                     self,
                     currentPosition,
-                    currentDirection
+                    currentDirection,
+                    isObstacleToX,
+                    false
                 )
             }
         else
@@ -393,7 +401,9 @@ local MoveExecutioner = {
                 obstaclePositions = helpers.determineObstaclePosition(
                     self,
                     currentPosition,
-                    currentDirection
+                    currentDirection,
+                    isObstacleToX,
+                    false
                 )
             }
         elseif getDistanceTravelled(self, currentDirection) <= -robot_parameters.squareSideDimension / 2 then

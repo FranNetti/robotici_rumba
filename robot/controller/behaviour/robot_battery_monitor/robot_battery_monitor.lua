@@ -46,17 +46,7 @@ local function getAvailableBatteryEnoughToJustGoBackHome(robotBatteryMonitor, st
     local numberOfStepsToReachHome = numberOfCellsToHome / robot_parameters.speedPerCell
     numberOfStepsToReachHome = numberOfStepsToReachHome + (numberOfStepsToReachHome * MARGIN_AUTONOMY)
 
-    logger.print('distance autonomy = ' .. distanceAutonomy, LogLevel.WARNING)
-    logger.print('distance in steps = ' .. numberOfStepsToReachHome, LogLevel.WARNING)
-
     return distanceAutonomy - numberOfStepsToReachHome
-end
-
-local function isRobotNotTurning(state)
-    return not (state.wheels.velocity_left == robot_parameters.robotNotTurningTyreSpeed
-        and state.wheels.velocity_right ~= 0
-        or state.wheels.velocity_right == robot_parameters.robotNotTurningTyreSpeed
-        and state.wheels.velocity_left ~= 0)
 end
 
 local function computeActionsToHome(robotBatteryMonitor, state, lastAction, obstacleEncountered)
@@ -68,8 +58,8 @@ local function computeActionsToHome(robotBatteryMonitor, state, lastAction, obst
 
     local actions = helpers.getFastestRoute(
         yen,
+        robotBatteryMonitor.map,
         state,
-        robotBatteryMonitor.map.position,
         lastAction,
         obstacleEncountered
     )
@@ -150,7 +140,8 @@ RoomMonitor = {
             self.checkFrequency = getCheckBatteryLevelFrequency(batteryDifference)
             local batteryPercentage = state.batteryLevel / Battery.BATTERY_MAX_VALUE
             if (batteryDifference <= 0 or batteryPercentage <= MAX_BATTERY_PERCENTAGE_BEFORE_GOING_HOME)
-                and isRobotNotTurning(state) then
+                and controller_utils.isRobotNotTurning(state)
+                and not helpers.isRobotCloseToObstacle(state) then
                 handleStopMove(self, state)
                 computeActionsToHome(self, state)
                 self.state = State.ALERT_GOING_CHARGING_STATION
