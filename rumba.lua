@@ -1,5 +1,5 @@
 local math = require('math')
-math.randomseed(1234)
+math.randomseed(1234567)
 
 local sensors = require('robot.sensors')
 local actuators = require('robot.actuators')
@@ -17,7 +17,7 @@ local RoomCleaner = require('robot.controller.behaviour.room_cleaner.room_cleane
 local RoomMonitor = require('robot.controller.behaviour.room_monitor.room_monitor')
 local RobotBatteryMonitor = require('robot.controller.behaviour.robot_battery_monitor.robot_battery_monitor')
 
-local INITIAL_ROOM_TEMPERATURE = 12
+local INITIAL_ROOM_TEMPERATURE = 0
 logger.level = logger.LogLevel.INFO
 
 local temperatureSensor

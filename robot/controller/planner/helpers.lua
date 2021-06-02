@@ -2,6 +2,7 @@ local MoveAction = require("robot.controller.planner.move_action")
 local ExcludeOption = require('robot.controller.planner.exclude_option')
 
 local Set = require('util.set')
+local Pair = require('extensions.lua.pair')
 local commons = require('util.commons')
 local logger = require('util.logger')
 local Direction = commons.Direction
@@ -83,54 +84,102 @@ function helper.determineActions(path, direction, coordinatesDecoder)
     return actions
 end
 
-function helper.determinePositionsToExclude(excludeOptions, currentPosition, currentDirection, coordinatesEncoder)
-    local positionExcluded = Set:new{}
+function helper.determineEdgesToExclude(excludeOptions, currentPosition, currentDirection, coordinatesEncoder)
+    local edgesExcluded = Set:new{}
     if excludeOptions ~= nil then
         for opt, _ in pairs(excludeOptions) do
             if currentDirection == Direction.NORTH then
                 if opt == ExcludeOption.EXCLUDE_FRONT then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_BACK and currentPosition.lat ~= 0 then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_LEFT then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_RIGHT and currentPosition.lng ~= 0 then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1)
+                    ):toString())
                 end
             elseif currentDirection == Direction.SOUTH then
                 if opt == ExcludeOption.EXCLUDE_FRONT and currentPosition.lat ~= 0 then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_BACK then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_LEFT and currentPosition.lng ~= 0 then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_RIGHT then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1)
+                    ):toString())
                 end
             elseif currentDirection == Direction.EAST then
                 if opt == ExcludeOption.EXCLUDE_FRONT and currentPosition.lng ~=0 then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_BACK then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_LEFT then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_RIGHT and currentPosition.lat ~= 0  then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng)
+                    ):toString())
                 end
             else
                 if opt == ExcludeOption.EXCLUDE_FRONT then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng + 1)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_BACK and currentPosition.lng ~= 0 then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng - 1)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_LEFT and currentPosition.lat ~= 0 then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat - 1, currentPosition.lng)
+                    ):toString())
                 elseif opt == ExcludeOption.EXCLUDE_RIGHT then
-                    positionExcluded:add(coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng))
+                    edgesExcluded:add(Pair:new(
+                        coordinatesEncoder(currentPosition.lat, currentPosition.lng),
+                        coordinatesEncoder(currentPosition.lat + 1, currentPosition.lng)
+                    ):toString())
                 end
             end
         end
     end
-    return positionExcluded
+    return edgesExcluded
 end
 
 return helper

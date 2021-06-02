@@ -55,6 +55,12 @@ CollisionAvoidance = {
             return Action.stayStill({
                 leds = {switchedOn = true, color = Color.YELLOW}
             }, { Subsumption.subsumeAll })
+        elseif self.isObjectInBackRange(state.proximity) then
+            printObstacleDetected('to the back', state.proximity, 11, 14)
+            logger.printToConsole("----------------")
+            return Action.stayStill({
+                leds = {switchedOn = true, color = Color.YELLOW}
+            }, { Subsumption.subsumeAll })
         end
 
         return Action:new({})
@@ -86,10 +92,12 @@ CollisionAvoidance = {
     end,
 
     isObjectInBackRange = function (proximityList)
-        return proximityList[11].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[1]
-            or proximityList[12].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[2]
-            or proximityList[13].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[3]
-            or proximityList[14].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[4]
+        for i=1, 4 do
+            if proximityList[i + 10].value > CLOSE_OBJECT_FRONT_DISTANCE_LIST[i] then
+                return true
+            end
+        end
+        return false
     end,
 
 }

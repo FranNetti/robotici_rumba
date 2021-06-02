@@ -14,4 +14,8 @@ function pair.__eq(pair1, pair2)
     return pair2.first == pair1.first and pair2.second == pair1.second
 end
 
+function pair:toString()
+    return "<<" .. self.first .. ">><<" .. self.second .. ">>"
+ end
+
 return pair

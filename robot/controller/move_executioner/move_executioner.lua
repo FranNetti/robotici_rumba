@@ -446,8 +446,29 @@ local MoveExecutioner = {
         updateNegativeStraightDistanceTravelled(self, state, currentDirection)
         local distanceTravelled = getDistanceTravelled(self, currentDirection)
         local move = self.actions[1]
-        if move == MoveAction.GO_AHEAD and distanceTravelled <= 0 then
+        if move == MoveAction.GO_AHEAD and distanceTravelled <= -robot_parameters.squareSideDimension / 2 then
+            if distanceTravelled > -robot_parameters.squareSideDimension then
+                return { action = RobotAction.goBack({}, {1, 2}) }
+            else
+                updateDistanceTravelled(self, currentDirection, robot_parameters.squareSideDimension)
+                return {
+                    isMoveActionFinished = true,
+                    position = MoveAction.nextPosition(self.map.position, currentDirection, MoveAction.GO_BACK)
+                }
+            end
+        elseif move == MoveAction.GO_AHEAD and distanceTravelled <= 0 then
             return { isMoveActionFinished = true }
+        elseif (move == MoveAction.GO_BACK or move == MoveAction.GO_BACK_BEFORE_TURNING)
+            and distanceTravelled >= robot_parameters.squareSideDimension / 2 then
+            if distanceTravelled < robot_parameters.squareSideDimension then
+                return { action = RobotAction:new({}, {2}) }
+            else
+                updateDistanceTravelled(self, currentDirection, -robot_parameters.squareSideDimension)
+                return {
+                    isMoveActionFinished = true,
+                    position = MoveAction.nextPosition(self.map.position, currentDirection, MoveAction.GO_AHEAD)
+                }
+            end
         elseif (move == MoveAction.GO_BACK or move == MoveAction.GO_BACK_BEFORE_TURNING) and distanceTravelled >= 0 then
             return { isMoveActionFinished = true }
         elseif move == MoveAction.GO_AHEAD then

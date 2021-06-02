@@ -91,12 +91,6 @@ function helpers.determineObstaclePosition (moveExecutioner, currentPosition, cu
 
         local frontPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_AHEAD)
         local backPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.GO_BACK)
-        if currentAction == MoveAction.GO_BACK or currentAction == MoveAction.GO_BACK_BEFORE_TURNING then
-            local temp = frontPosition
-            frontPosition = backPosition
-            backPosition = temp
-        end
-
         local leftPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.TURN_LEFT)
         local rightPosition = MoveAction.nextPosition(currentPosition, currentDirection, MoveAction.TURN_RIGHT)
         local frontLeftPosition = MoveAction.nextPosition(frontPosition, currentDirection, MoveAction.TURN_LEFT)

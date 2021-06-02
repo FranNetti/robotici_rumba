@@ -19,19 +19,12 @@ local function distanceFunction(self, p1, p2, distanceFunc)
     end
 end
 
-function algorithm:getKPath(start, goal, K, _excludePositions, distanceFunc)
-    _excludePositions = _excludePositions or {}
+function algorithm:getKPath(start, goal, K, _excludeEdges, distanceFunc)
+    _excludeEdges = _excludeEdges or {}
     local edgeToExclude, excludePositions = {}, {}
     local startEncoded = self.encodeFunction(start)
     local goalEncoded = self.encodeFunction(goal)
-    for i = 1, #_excludePositions do
-        local pos = self.encodeFunction(_excludePositions[i])
-        table.insert(
-            edgeToExclude,
-            Pair:new(startEncoded, pos)
-        )
-        table.insert(excludePositions, pos)
-    end
+    edgeToExclude = _excludeEdges
 
     self.edgeToExclude = {table.unpack(edgeToExclude)}
     self.nodesToExclude = {table.unpack(excludePositions)}

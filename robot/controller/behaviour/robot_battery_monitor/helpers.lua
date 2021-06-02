@@ -8,6 +8,7 @@ local Pair = require('extensions.lua.pair')
 local logger = require('util.logger')
 local a_star = require('extensions.luagraphs.shortest_paths.a_star')
 local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
+local ExcludeOption = require('robot.controller.planner.exclude_option')
 
 local helpers = {}
 
@@ -32,16 +33,14 @@ function helpers.getFastestRoute(yen, map, state, lastAction, obstacleEncountere
     if obstacleEncountered and lastAction ~= nil then
         excludedOptions = controller_utils.getExcludedOptionsAfterObstacle(lastAction, state)
     end
+    excludedOptions:add(ExcludeOption.EXCLUDE_BACK)
 
-    local excludePositions = planner_helpers.determinePositionsToExclude(
+    local excludePositions = planner_helpers.determineEdgesToExclude(
         excludedOptions,
         map.position,
         currentDirection,
-        function (lat, lng)
-            return Position:new(lat, lng)
-        end
+        Planner.encodeCoordinates
     )
-    excludePositions:add(MoveAction.nextPosition(map.position, currentDirection, MoveAction.GO_BACK))
 
     local paths = yen:getKPath(
 		map.position,

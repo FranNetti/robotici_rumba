@@ -8,6 +8,7 @@ local MoveAction = require('robot.controller.planner.move_action')
 
 local logger = require('util.logger')
 local Set = require('util.set')
+local Pair = require('extensions.lua.pair')
 
 local function addNewDiagonalPoint(planner, map, currentDepth, depth)
     local depthDifference = depth - currentDepth
@@ -112,14 +113,14 @@ Planner = {
     ---@param start table Position - the position where you currently are
     ---@param destination table Position - the destination that you want to reach
     ---@param backPosition table Position - the position right behind the starting point
-    ---@param excludePositions table Set - the set of position to exclude from the path
+    ---@param excludeEdges table Set - the set of position to exclude from the path
     ---@param areNewCellsToExploreMoreImportant boolean if the cells to yet explore are more important than the ones already explored
     ---@return table list of nodes to follow to reach the destination
-    getPathTo = function (self, start, destination, backPosition, excludePositions, areNewCellsToExploreMoreImportant)
+    getPathTo = function (self, start, destination, backPosition, excludeEdges, areNewCellsToExploreMoreImportant)
         if areNewCellsToExploreMoreImportant == nil then
             areNewCellsToExploreMoreImportant = areNewCellsToExploreMoreImportant or true
         end
-        excludePositions = excludePositions or Set:new{}
+        excludeEdges = excludeEdges or Set:new{}
         backPosition = self.encodeCoordinatesFromPosition(backPosition)
 
         return self.aStar:getPath(
@@ -130,18 +131,11 @@ Planner = {
                 local x1, y1 = Planner.decodeCoordinates(pointA)
                 local x2, y2 = Planner.decodeCoordinates(pointB)
 
-                --[[ logger.stringify(pointA)
-                logger.stringify(pointB)
-                logger.stringify(excludePositions)
-                logger.stringify(excludePositions:contain(pointA))
-                logger.stringify(excludePositions:contain(pointB))
-                logger.stringify('------------------------------') ]]
-
                 if self.map[x1][y1] == CellStatus.OBSTACLE or self.map[x2][y2] == CellStatus.OBSTACLE then
                     return helpers.OBSTACLE_CELL_COST
                 elseif pointA == backPosition or pointB == backPosition then
                     return helpers.BACK_OPTION_COST
-                elseif excludePositions:contain(pointA) or excludePositions:contain(pointB) then
+                elseif excludeEdges:contain(Pair:new(pointA, pointB):toString()) then
                     return helpers.EXCLUDED_OPTIONS_COST
                 end
 
@@ -167,7 +161,7 @@ Planner = {
             return {}
         end
 
-        local excludedPositions = helpers.determinePositionsToExclude(
+        local excludedEdges = helpers.determineEdgesToExclude(
             excludeOptions,
             start,
             direction,
@@ -178,7 +172,7 @@ Planner = {
             start,
             destination,
             MoveAction.nextPosition(start, direction, MoveAction.GO_BACK),
-            excludedPositions,
+            excludedEdges,
             areNewCellsToExploreMoreImportant
         )
 
