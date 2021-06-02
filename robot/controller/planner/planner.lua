@@ -130,6 +130,13 @@ Planner = {
                 local x1, y1 = Planner.decodeCoordinates(pointA)
                 local x2, y2 = Planner.decodeCoordinates(pointB)
 
+                --[[ logger.stringify(pointA)
+                logger.stringify(pointB)
+                logger.stringify(excludePositions)
+                logger.stringify(excludePositions:contain(pointA))
+                logger.stringify(excludePositions:contain(pointB))
+                logger.stringify('------------------------------') ]]
+
                 if self.map[x1][y1] == CellStatus.OBSTACLE or self.map[x2][y2] == CellStatus.OBSTACLE then
                     return helpers.OBSTACLE_CELL_COST
                 elseif pointA == backPosition or pointB == backPosition then
@@ -180,10 +187,13 @@ Planner = {
     end,
 
     setCellAs = function (self, cellPosition, cellStatus)
-        --[[ if cellStatus == CellStatus.OBSTACLE and cellPosition.lat >= 0 and cellPosition.lng >= 0 then
-            local coordinates = self.encodeCoordinatesFromPosition(cellPosition)
-            self.graph:removeVertex(coordinates)
-        end ]]
+        if cellPosition.lat >= 0 and cellPosition.lng >= 0 then
+            if cellPosition.lat > #self.map then
+                self:addNewDiagonalPoint(cellPosition.lat)
+            elseif cellPosition.lng > #self.map[cellPosition.lat] then
+                self:addNewDiagonalPoint(cellPosition.lng)
+            end
+        end
     end,
 
     setCellAsDirty = function (self, cellPosition)

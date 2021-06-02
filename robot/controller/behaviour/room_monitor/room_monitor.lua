@@ -6,11 +6,11 @@ local table = require('extensions.lua.table')
 
 local RobotAction = require('robot.commons').Action
 local MoveAction = require('robot.controller.planner.move_action')
-local robot_parameters = require('robot.parameters')
 local controller_utils = require('robot.controller.utils')
 local MoveExecutioner = require('robot.controller.move_executioner.move_executioner')
 local Planner = require('robot.controller.planner.planner')
 local Subsumption = require('robot.controller.subsumption')
+local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 
 local State = require('robot.controller.behaviour.room_monitor.state')
 
@@ -49,6 +49,12 @@ local function handleStopMove(roomMonitor, state)
     end
 end
 
+local function isRobotCloseToObstacle(state)
+    return CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity)
+        or CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity)
+        or CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity)
+end
+
 RoomMonitor = {
 
     new = function (self, map)
@@ -83,7 +89,9 @@ RoomMonitor = {
     --[[ --------- WORKING ---------- ]]
 
     working = function (self, state)
-        if state.roomTemperature >= TEMPERATURE_THRESHOLD_UPPER_LIMIT and controller_utils.isRobotNotTurning(state) then
+        if state.roomTemperature >= TEMPERATURE_THRESHOLD_UPPER_LIMIT
+            and controller_utils.isRobotNotTurning(state)
+            and not isRobotCloseToObstacle(state) then
             self.lastKnownPosition = self.map.position
             if self.map.position ~= Position:new(0,0) then
                 handleStopMove(self, state)
@@ -148,8 +156,8 @@ RoomMonitor = {
             logger.print("Currently in " .. self.map.position:toString(), LogLevel.INFO)
 
             for i = 1, #result.obstaclePositions do
-                self.map:setCellAsObstacle(result.obstaclePositions[i])
                 self.planner:setCellAsObstacle(result.obstaclePositions[i])
+                self.map:setCellAsObstacle(result.obstaclePositions[i])
                 logger.print(result.obstaclePositions[i]:toString() .. " detected as obstacle!", LogLevel.WARNING)
             end
 

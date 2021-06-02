@@ -14,6 +14,7 @@ local CellStatus = require('robot.controller.map.cell_status')
 local MoveExecutioner = require('robot.controller.move_executioner.move_executioner')
 local Planner = require('robot.controller.planner.planner')
 local Subsumption = require('robot.controller.subsumption')
+local CollisionAvoidanceBehaviour = require('robot.controller.behaviour.collision_avoidance.collision_avoidance')
 
 local State = require('robot.controller.behaviour.room_cleaner.state')
 
@@ -81,6 +82,13 @@ local function detectDirtyPositions(state, map, currentPositiom, oldDirection)
     return { currentPositiom }
 end
 
+
+local function isRobotCloseToObstacle(state)
+    return CollisionAvoidanceBehaviour.isObjectInLeftRange(state.proximity)
+        or CollisionAvoidanceBehaviour.isObjectInRightRange(state.proximity)
+        or CollisionAvoidanceBehaviour.isObjectInFrontRange(state.proximity)
+end
+
 RoomCleaner = {
 
     new = function (self, map)
@@ -103,19 +111,22 @@ RoomCleaner = {
 
     tick = function (self, state)
         if state.isDirtDetected then
-            return self:handleDirtyCell(state)
-        else
-            self.isCleaning = false
-            if self.state == State.WORKING then
-                return self:working(state)
-            elseif self.state == State.GOING_TO_DIRT then
-                return self:reachDirtPosition(state)
-            elseif self.state == State.OBSTACLE_ENCOUNTERED then
-                return self:handleObstacle(state)
-            else
-                logger.printToConsole('[ROOM_CLEANER] Unknown state: ' .. self.state, LogLevel.WARNING)
-                logger.printTo('[ROOM_CLEANER] Unknown state: ' .. self.state, LogLevel.WARNING)
+            local result = self:handleDirtyCell(state)
+            if result ~= nil then
+                return result
             end
+        end
+
+        self.isCleaning = false
+        if self.state == State.WORKING then
+            return self:working(state)
+        elseif self.state == State.GOING_TO_DIRT then
+            return self:reachDirtPosition(state)
+        elseif self.state == State.OBSTACLE_ENCOUNTERED then
+            return self:handleObstacle(state)
+        else
+            logger.printToConsole('[ROOM_CLEANER] Unknown state: ' .. self.state, LogLevel.WARNING)
+            logger.printTo('[ROOM_CLEANER] Unknown state: ' .. self.state, LogLevel.WARNING)
         end
     end,
 
@@ -156,42 +167,44 @@ RoomCleaner = {
     --[[ --------- HANDLE DIRTY CELL ---------- ]]
 
     handleDirtyCell = function (self, state)
-        if not self.isCleaning then
-            local newPosition = self.moveExecutioner:handleStopMove(state)
+        if controller_utils.isRobotNotTurning(state) and not isRobotCloseToObstacle(state) then
+            if not self.isCleaning then
+                local newPosition = self.moveExecutioner:handleStopMove(state)
 
-            logger.print(
-                '[ROOM_CLEANER] Detected dirt in cell ' .. self.map.position:toString(),
-                LogLevel.INFO
-            )
+                logger.print(
+                    '[ROOM_CLEANER] Detected dirt in cell ' .. self.map.position:toString(),
+                    LogLevel.INFO
+                )
 
-            if newPosition ~= self.map.position then
-                self.map.position = newPosition
-                self.lastKnownPosition = newPosition
-                self.map:setCellAsClean(newPosition)
-                if self.planner ~= nil then
-                    self.planner:setCellAsClean(newPosition)
+                if newPosition ~= self.map.position then
+                    self.map.position = newPosition
+                    self.lastKnownPosition = newPosition
+                    self.map:setCellAsClean(newPosition)
+                    if self.planner ~= nil then
+                        self.planner:setCellAsClean(newPosition)
+                    end
+                    self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
                 end
-                self.oldDirection = controller_utils.discreteDirection(state.robotDirection)
-            end
 
-            local dirtPositions = detectDirtyPositions(
-                state,
-                self.map,
-                self.map.position,
-                self.oldDirection
-            )
-            for i = 1, #dirtPositions do
-                if self.planner ~= nil then
-                    self.planner:setCellAsDirty(dirtPositions[i])
+                local dirtPositions = detectDirtyPositions(
+                    state,
+                    self.map,
+                    self.map.position,
+                    self.oldDirection
+                )
+                for i = 1, #dirtPositions do
+                    if self.planner ~= nil then
+                        self.planner:setCellAsDirty(dirtPositions[i])
+                    end
+                    self.map:setCellAsDirty(dirtPositions[i])
                 end
-                self.map:setCellAsDirty(dirtPositions[i])
+                self.isCleaning = true
             end
-            self.isCleaning = true
+            return RobotAction.stayStill({
+                hasToClean = true,
+                leds = { switchedOn = true, color = Color.WHITE }
+            }, { Subsumption.subsumeAll })
         end
-        return RobotAction.stayStill({
-            hasToClean = true,
-            leds = { switchedOn = true, color = Color.WHITE }
-        }, { Subsumption.subsumeAll })
     end,
 
     --[[ --------- HANDLE DIFFERENT CELL ---------- ]]
@@ -266,6 +279,7 @@ RoomCleaner = {
                 return true
             else
                 if self.map.isPerimeterIdentified then
+                    self.planner:setCellAsObstacle(dirtPosition)
                     self.map:setCellAsObstacle(dirtPosition)
                 end
                 return false
@@ -292,8 +306,8 @@ RoomCleaner = {
             logger.print("Currently in " .. self.map.position:toString(), LogLevel.INFO)
 
             for i = 1, #result.obstaclePositions do
-                self.map:setCellAsObstacle(result.obstaclePositions[i])
                 self.planner:setCellAsObstacle(result.obstaclePositions[i])
+                self.map:setCellAsObstacle(result.obstaclePositions[i])
                 logger.print(result.obstaclePositions[i]:toString() .. " detected as obstacle!", LogLevel.WARNING)
             end
 
@@ -371,8 +385,8 @@ RoomCleaner = {
                 )
                 logger.print("----------------", LogLevel.INFO)
                 if self.map.isPerimeterIdentified then
-                    self.map:setCellAsObstacle(self.target)
                     self.planner:setCellAsObstacle(self.target)
+                    self.map:setCellAsObstacle(self.target)
                 end
                 return self:goToFirstDirtyCell(state)
             end

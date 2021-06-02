@@ -146,8 +146,8 @@ RoomCoverage = {
             logger.print("Currently in " .. self.map.position:toString(), LogLevel.INFO)
 
             for i = 1, #result.obstaclePositions do
-                self.map:setCellAsObstacle(result.obstaclePositions[i])
                 self.planner:setCellAsObstacle(result.obstaclePositions[i])
+                self.map:setCellAsObstacle(result.obstaclePositions[i])
                 logger.print(result.obstaclePositions[i]:toString() .. " detected as obstacle!", LogLevel.WARNING)
             end
             logger.print("----------------", LogLevel.WARNING)

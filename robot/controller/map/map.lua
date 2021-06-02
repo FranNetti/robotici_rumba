@@ -37,7 +37,14 @@ Map = {
     end,
 
     getCell = function (self, position)
-        return self.map[position.lat][position.lng]
+        -- print(position:toString())
+        if position.lat < 0 or position.lng < 0 then
+            return CellStatus.OBSTACLE
+        elseif position.lat > #self.map or position.lng > #self.map[position.lat] then
+            return CellStatus.TO_EXPLORE
+        else
+            return self.map[position.lat][position.lng]
+        end
     end,
 
     getCurrentCell = function (self)
@@ -92,6 +99,11 @@ Map = {
 
     setCellAs = function (self, cellPosition, cellStatus)
         if cellPosition.lat >= 0 and cellPosition.lng >= 0 then
+            if cellPosition.lat > #self.map then
+                self:addNewDiagonalPoint(cellPosition.lat)
+            elseif cellPosition.lng > #self.map[cellPosition.lat] then
+                self:addNewDiagonalPoint(cellPosition.lng)
+            end
             self.map[cellPosition.lat][cellPosition.lng] = cellStatus
         end
     end,
