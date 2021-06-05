@@ -1,6 +1,7 @@
 local luaList = require('luagraphs.data.list')
 local luaGraph = require('extensions.luagraphs.data.graph')
 local aStar = require('extensions.luagraphs.shortest_paths.a_star')
+local yen_ksp = require('extensions.luagraphs.shortest_paths.yen_ksp')
 
 local helpers = require('robot.controller.planner.helpers')
 local CellStatus = require('robot.controller.map.cell_status')
@@ -75,6 +76,11 @@ Planner = {
             map = map,
             graph = graph,
             aStar = aStar.create(graph),
+            yen = yen_ksp.create(
+                graph,
+                Planner.encodeCoordinatesFromPosition,
+                Planner.decodeCoordinates
+            ),
             actions = nil
         }
         setmetatable(o, self)
@@ -177,6 +183,60 @@ Planner = {
         )
 
         self.actions = helpers.determineActions(path, direction, self.decodeCoordinates)
+        return self.actions
+    end,
+
+    getFastActionsTo = function (self, start, destination, direction, excludeOptions)
+        local excludedEdges = helpers.determineEdgesToExclude(
+            excludeOptions,
+            start,
+            direction,
+            self.encodeCoordinates
+        )
+
+        local paths = self.yen:getKPath(
+            start,
+            destination,
+            helpers.NUMBER_OF_ROUTES_TO_FIND,
+            excludedEdges:toList(),
+            function (pointA, pointB)
+
+                local x1, y1 = self.decodeCoordinates(pointA)
+                local x2, y2 = self.decodeCoordinates(pointB)
+
+                if self.map[x1][y1] == CellStatus.OBSTACLE or self.map[x2][y2] == CellStatus.OBSTACLE then
+                    return helpers.OBSTACLE_CELL_COST
+                end
+
+                local cost = aStar.manhattanDistance(x1, y1, x2, y2)
+                --[[
+                    avoid cells yet to explore because anything can happen and the robot
+                    wants to quickly reach home with less possible problems
+                ]]
+                if self.map[x1][y1] == CellStatus.TO_EXPLORE or self.map[x2][y2] == CellStatus.TO_EXPLORE then
+                    return helpers.CELL_TO_EXPLORE_COST
+                else
+                    return cost
+                end
+            end
+        )
+
+        local actions = {}
+        local min = Pair:new(100, 1)
+        for i = 1, helpers.NUMBER_OF_ROUTES_TO_FIND do
+            local listOfActions = helpers.determineActions(
+                paths[i],
+                direction,
+                self.decodeCoordinates
+            )
+            local count = helpers.countNumberOfTurns(listOfActions)
+            table.insert(actions, listOfActions)
+            if count < min.first then
+                min = Pair:new(count, i)
+            end
+        end
+
+        self.actions = actions[min.second]
         return self.actions
     end,
 

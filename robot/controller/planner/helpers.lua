@@ -1,5 +1,6 @@
 local MoveAction = require("robot.controller.planner.move_action")
 local ExcludeOption = require('robot.controller.planner.exclude_option')
+local helpers = require "robot.controller.move_executioner.helpers"
 
 local Set = require('util.set')
 local Pair = require('extensions.lua.pair')
@@ -12,6 +13,9 @@ local helper = {}
 helper.EXCLUDED_OPTIONS_COST = 9999999999
 helper.BACK_OPTION_COST = helper.EXCLUDED_OPTIONS_COST * 2
 helper.OBSTACLE_CELL_COST = helper.EXCLUDED_OPTIONS_COST * 3
+
+helper.NUMBER_OF_ROUTES_TO_FIND = 4
+helper.CELL_TO_EXPLORE_COST = 50
 
 function helper.determineActions(path, direction, coordinatesDecoder)
     local actions = {}
@@ -180,6 +184,16 @@ function helper.determineEdgesToExclude(excludeOptions, currentPosition, current
         end
     end
     return edgesExcluded
+end
+
+function helper.countNumberOfTurns(list)
+    local count = 0
+    for i = 1, #list do
+        if list[i] == MoveAction.TURN_LEFT or list[i] == MoveAction.TURN_RIGHT then
+            count = count + 1
+        end
+    end
+    return count
 end
 
 return helper

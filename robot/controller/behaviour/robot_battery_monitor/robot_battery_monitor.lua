@@ -3,7 +3,6 @@ local Position = require('util.commons').Position
 local logger = require('util.logger')
 local LogLevel = logger.LogLevel
 local table = require('extensions.lua.table')
-local yen_ksp = require('extensions.luagraphs.shortest_paths.yen_ksp')
 
 local Battery = require('robot.sensors').Battery
 local RobotAction = require('robot.commons').Action
@@ -12,6 +11,7 @@ local robot_parameters = require('robot.parameters')
 local controller_utils = require('robot.controller.utils')
 local MoveExecutioner = require('robot.controller.move_executioner.move_executioner')
 local Planner = require('robot.controller.planner.planner')
+local ExcludeOption = require('robot.controller.planner.exclude_option')
 
 local State = require('robot.controller.behaviour.robot_battery_monitor.state')
 local helpers = require('robot.controller.behaviour.robot_battery_monitor.helpers')
@@ -50,23 +50,19 @@ local function getAvailableBatteryEnoughToJustGoBackHome(robotBatteryMonitor, st
 end
 
 local function computeActionsToHome(robotBatteryMonitor, state, lastAction, obstacleEncountered)
-    local yen = yen_ksp.create(
-        robotBatteryMonitor.planner.graph,
-        Planner.encodeCoordinatesFromPosition,
-        Planner.decodeCoordinates
-    )
+    local excludedOptions = controller_utils.getExcludedOptionsByState(state)
+    if obstacleEncountered and lastAction ~= nil then
+        excludedOptions = controller_utils.getExcludedOptionsAfterObstacle(lastAction, state)
+    end
+    excludedOptions:add(ExcludeOption.EXCLUDE_BACK)
 
-    local actions = helpers.getFastestRoute(
-        yen,
-        robotBatteryMonitor.map,
-        state,
-        lastAction,
-        obstacleEncountered
-    )
-
-    robotBatteryMonitor.planner.actions = actions
     robotBatteryMonitor.moveExecutioner:setActions(
-        actions,
+            robotBatteryMonitor.planner:getFastActionsTo(
+            robotBatteryMonitor.map.position,
+            Position:new(0,0),
+            controller_utils.discreteDirection(state.robotDirection),
+            excludedOptions
+        ),
         state
     )
 end
