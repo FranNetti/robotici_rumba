@@ -80,7 +80,7 @@ end
 -- Pathfinding functions
 ----------------------------------------------------------------
 
-local function a_star(start, goal, graph, distance_func)
+local function a_star(start, goal, graph, distance_func, heuristic_func)
 
 	local closedset = {}
 	local openset = { start }
@@ -88,7 +88,7 @@ local function a_star(start, goal, graph, distance_func)
 
 	local g_score, f_score = {}, {}
 	g_score [start] = 0
-	f_score [start] = g_score [start] + heuristic_cost_estimate(start, goal, distance_func)
+	f_score [start] = g_score [start] + heuristic_cost_estimate(start, goal, heuristic_func)
 
 	while #openset > 0 do
 
@@ -110,7 +110,7 @@ local function a_star(start, goal, graph, distance_func)
 				if not_in ( openset, neighbor ) or tentative_g_score < g_score [ neighbor ] then
 					came_from 	[ neighbor ] = current
 					g_score 	[ neighbor ] = tentative_g_score
-					f_score 	[ neighbor ] = g_score [ neighbor ] + heuristic_cost_estimate ( neighbor, goal, distance_func )
+					f_score 	[ neighbor ] = g_score [ neighbor ] + heuristic_cost_estimate ( neighbor, goal, heuristic_func )
 					if not_in ( openset, neighbor ) then
 						table.insert ( openset, neighbor )
 					end
@@ -141,8 +141,8 @@ function algorithm.create(graph)
     return a
 end
 
-function algorithm:getPath(start, goal, distance_func)
-    return a_star(start, goal, self.graph, distance_func)
+function algorithm:getPath(start, goal, distance_func, heuristic_func)
+    return a_star(start, goal, self.graph, distance_func, heuristic_func)
 end
 
 return algorithm

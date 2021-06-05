@@ -128,10 +128,11 @@ Planner = {
         end
         excludeEdges = excludeEdges or Set:new{}
         backPosition = self.encodeCoordinatesFromPosition(backPosition)
+        start = self.encodeCoordinatesFromPosition(start)
+        destination = self.encodeCoordinatesFromPosition(destination)
 
         return self.aStar:getPath(
-            self.encodeCoordinatesFromPosition(start),
-            self.encodeCoordinatesFromPosition(destination),
+            start, destination,
             function (pointA, pointB)
 
                 local x1, y1 = Planner.decodeCoordinates(pointA)
@@ -139,18 +140,25 @@ Planner = {
 
                 if self.map[x1][y1] == CellStatus.OBSTACLE or self.map[x2][y2] == CellStatus.OBSTACLE then
                     return helpers.OBSTACLE_CELL_COST
-                elseif pointA == backPosition or pointB == backPosition then
+                elseif Pair:new(pointA, pointB) == Pair:new(start, backPosition)
+                    or Pair:new(pointA, pointB) == Pair:new(backPosition, start) then
                     return helpers.BACK_OPTION_COST
-                elseif excludeEdges:contain(Pair:new(pointA, pointB):toString()) then
+                elseif excludeEdges:contain(Pair:new(pointA, pointB):toString())
+                    or excludeEdges:contain(Pair:new(pointB, pointA):toString()) then
                     return helpers.EXCLUDED_OPTIONS_COST
                 end
 
                 local cost = aStar.manhattanDistance(x1, y1, x2, y2)
-                if self.map[x2][y2] == CellStatus.TO_EXPLORE or not areNewCellsToExploreMoreImportant then
+                if self.map[x2][y2] == CellStatus.TO_EXPLORE
+                    or self.map[x2][y2] == CellStatus.TO_EXPLORE
+                    or not areNewCellsToExploreMoreImportant then
                     return cost
                 else
                     return cost * 2
                 end
+            end,
+            function (point, goal)
+                return helpers.heuristicFunction(self, point, goal)
             end
         )
     end,
@@ -194,6 +202,10 @@ Planner = {
             self.encodeCoordinates
         )
 
+        if helpers.isCloseToHomeDestination(start, destination, direction) then
+            return helpers.getGoToHomeActions(start, direction)
+        end
+
         local paths = self.yen:getKPath(
             start,
             destination,
@@ -218,12 +230,16 @@ Planner = {
                 else
                     return cost
                 end
+            end,
+            function (point, goal)
+                return helpers.heuristicFunction(self, point, goal)
             end
         )
 
         local actions = {}
-        local min = Pair:new(100, 1)
-        for i = 1, helpers.NUMBER_OF_ROUTES_TO_FIND do
+        local min = Pair:new(1000, 1)
+        local i = 1
+        while i <= helpers.NUMBER_OF_ROUTES_TO_FIND and i <= #paths do
             local listOfActions = helpers.determineActions(
                 paths[i],
                 direction,
@@ -234,6 +250,7 @@ Planner = {
             if count < min.first then
                 min = Pair:new(count, i)
             end
+            i = i + 1
         end
 
         self.actions = actions[min.second]

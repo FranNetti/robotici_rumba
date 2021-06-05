@@ -1,12 +1,15 @@
 local MoveAction = require("robot.controller.planner.move_action")
 local ExcludeOption = require('robot.controller.planner.exclude_option')
-local helpers = require "robot.controller.move_executioner.helpers"
+local CellStatus = require('robot.controller.map.cell_status')
+local helpers = require ("robot.controller.move_executioner.helpers")
+local aStar = require('extensions.luagraphs.shortest_paths.a_star')
 
 local Set = require('util.set')
 local Pair = require('extensions.lua.pair')
 local commons = require('util.commons')
 local logger = require('util.logger')
 local Direction = commons.Direction
+local Position = commons.Position
 
 local helper = {}
 
@@ -16,6 +19,8 @@ helper.OBSTACLE_CELL_COST = helper.EXCLUDED_OPTIONS_COST * 3
 
 helper.NUMBER_OF_ROUTES_TO_FIND = 4
 helper.CELL_TO_EXPLORE_COST = 50
+
+helper.MAX_HOME_DISTANCE = 4
 
 function helper.determineActions(path, direction, coordinatesDecoder)
     local actions = {}
@@ -194,6 +199,41 @@ function helper.countNumberOfTurns(list)
         end
     end
     return count
+end
+
+function helper.heuristicFunction(planner, point, goal)
+    local x1, y1 = planner.decodeCoordinates(point)
+    local x2, y2 = planner.decodeCoordinates(goal)
+
+    if planner.map[x1][y1] == CellStatus.OBSTACLE then
+        return helper.OBSTACLE_CELL_COST
+    else
+        return aStar.manhattanDistance(x1, y1, x2, y2)
+    end
+end
+
+function helper.isCloseToHomeDestination(currentPosition, destination, currentDirection)
+    return destination == Position:new(0,0) and (
+        currentPosition.lat == 0 and currentPosition.lng < helper.MAX_HOME_DISTANCE and currentDirection == Direction.WEST
+        or currentPosition.lng == 0 and currentPosition.lat < helper.MAX_HOME_DISTANCE and currentDirection == Direction.NORTH
+    )
+end
+
+function helper.getGoToHomeActions(currentPosition, currentDirection)
+    local actions = {}
+    if currentDirection == Direction.WEST then
+        for _ = currentPosition.lng, 0, -1 do
+            table.insert(actions, MoveAction.GO_BACK)
+        end
+    elseif currentDirection == Direction.NORTH then
+        for _ = currentPosition.lng, 0, -1 do
+            table.insert(actions, MoveAction.GO_BACK)
+        end
+    else
+        return {}
+    end
+    logger.stringify(actions)
+    return actions
 end
 
 return helper

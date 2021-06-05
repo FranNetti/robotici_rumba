@@ -153,7 +153,9 @@ local MoveExecutioner = {
                 If the obstacle is in position (0,0) then we consider that the robot has resetted its position accordingly to
                 the direction it currently is
             ]]
-            if result.isObstacleEncountered and table.contains(result.obstaclePositions,Position:new(0,0)) then
+            if result.isObstacleEncountered and table.any(result.obstaclePositions, function (elem)
+                    return elem.lat == 0 and elem.lng <= 0 or elem.lng == 0 and elem.lat <= 0
+                end) then
                 result.obstaclePositions = { Position:new(-1,-1) }
                 if currentAction == MoveAction.GO_AHEAD then
                     result.position = Position:new(0,0)

@@ -12,14 +12,15 @@ local MAX_COST = 10000000000
 local function distanceFunction(self, p1, p2, distanceFunc)
     if table.containsAny(self.nodesToExclude, {p1 , p2}) then
         return MAX_COST
-    elseif table.contains(self.edgeToExclude, Pair:new(p1, p2)) then
+    elseif table.contains(self.edgeToExclude, Pair:new(p1, p2):toString())
+        or table.contains(self.edgeToExclude, Pair:new(p2, p1):toString()) then
         return MAX_COST
     else
         return distanceFunc(p1, p2)
     end
 end
 
-function algorithm:getKPath(start, goal, K, _excludeEdges, distanceFunc)
+function algorithm:getKPath(start, goal, K, _excludeEdges, distanceFunc, heuristicFunc)
     _excludeEdges = _excludeEdges or {}
     local edgeToExclude, excludePositions = {}, {}
     local startEncoded = self.encodeFunction(start)
@@ -35,7 +36,8 @@ function algorithm:getKPath(start, goal, K, _excludeEdges, distanceFunc)
         goalEncoded,
         function (p1, p2)
             return distanceFunction(self, p1, p2, distanceFunc)
-        end
+        end,
+        heuristicFunc
     )
 
     if shortestPath == nil then
@@ -60,7 +62,7 @@ function algorithm:getKPath(start, goal, K, _excludeEdges, distanceFunc)
             for path = 1, #A do
                 if table.equals(rootPath, table.split(A[path], i)) then
                     -- remove the links that are part of the previous shortest paths which share the same root path
-                    table.insert(self.edgeToExclude, Pair:new(nodes[i], nodes[i + 1]))
+                    table.insert(self.edgeToExclude, Pair:new(nodes[i], nodes[i + 1]):toString())
                 end
             end
 
@@ -75,7 +77,8 @@ function algorithm:getKPath(start, goal, K, _excludeEdges, distanceFunc)
                 spurNode, goalEncoded,
                 function (p1, p2)
                     return distanceFunction(self, p1, p2, distanceFunc)
-                end
+                end,
+                heuristicFunc
             )
 
             if spurPath ~= nil then
@@ -83,6 +86,7 @@ function algorithm:getKPath(start, goal, K, _excludeEdges, distanceFunc)
                 local totalPath
                 if #rootPath > 0 then
                     totalPath = rootPath
+                    table.remove(spurPath, 1)
                     table.insertMultiple(totalPath, spurPath)
                 else
                     totalPath = spurPath
@@ -97,22 +101,27 @@ function algorithm:getKPath(start, goal, K, _excludeEdges, distanceFunc)
             self.nodesToExclude = {table.unpack(excludePositions)}
         end
 
-        if #B == 0 then
-            break
+        if #B == 0 or B == nil then
+            return A
         end
 
         table.sort(B, function (a, b)
             return a.second < b.second
         end)
 
-        local index = 1
-        for i = 2, k do
-            while table.equals(A[k - 1], B[index].first) do
-                index = index + 1
+        local firstDifferentPathIndex = 1
+        for i = 1, #A do
+            while firstDifferentPathIndex <= #B and table.equals(A[i], B[firstDifferentPathIndex].first)  do
+                firstDifferentPathIndex = firstDifferentPathIndex + 1
             end
         end
-        A[k] = B[index].first
-        _, B = table.split(B, index)
+
+        if firstDifferentPathIndex <= # B then
+            A[k] = B[firstDifferentPathIndex].first
+            _, B = table.split(B, firstDifferentPathIndex)
+        else
+            return A
+        end
     end
     return A
 end

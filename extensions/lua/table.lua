@@ -9,7 +9,7 @@ end
 function extension.split(_table, splitIndex)
     local t1, t2 = {}, {}
     for i = 1, #_table do
-        if i < splitIndex then
+        if i <= splitIndex then
             table.insert( t1, _table[i])
         else
             table.insert( t2, _table[i])
